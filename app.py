@@ -37,6 +37,7 @@ if uploaded_files:
     total_trades = len(df)
     total_pnl = 0
     win_rate = 0
+    wins = 0
     
     if pnl_col:
         df['P&L_Clean'] = pd.to_numeric(df[pnl_col], errors='coerce').fillna(0)
@@ -54,7 +55,7 @@ if uploaded_files:
     col1.metric("Total P&L", f"{total_pnl:.2f}")
     col2.metric("Win Rate", f"{win_rate:.1f}%")
     col3.metric("Total Executions", total_trades)
-    col4.metric("Profitable Trades", wins if pnl_col else 0)
+    col4.metric("Profitable Trades", wins)
 
     # --- 2. CHARTS SECTION (Tradervue Style) ---
     if date_col and pnl_col:
@@ -98,7 +99,7 @@ if uploaded_files:
             try:
                 summary_data = edited_df[['Setup', 'Emotion']].copy()
                 if pnl_col:
-                    summary_data['P&L'] = edited_df[pnl_col]
+                    summary_data['P&L'] = edited_df['P&L_Clean']
                     
                 prompt = f"""
                 You are a strict, professional trading coach analyzing this data.
@@ -116,4 +117,4 @@ if uploaded_files:
             except Exception as e:
                 st.error("Error generating AI report. Check your Gemini API Key.")
 else:
-    st.info("👆 Please upload your Dhan or Delta
+    st.info("👆 Please upload your Dhan or Delta CSV files to build the dashboard.")
