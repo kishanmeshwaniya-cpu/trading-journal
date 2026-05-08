@@ -6,7 +6,6 @@ import google.generativeai as genai
 # --- Page Setup ---
 st.set_page_config(page_title="Smart Trading Journal", page_icon="📈", layout="wide")
 
-# CSS for a clean look
 st.markdown("""
     <style>
     .stMetric {background-color: #f0f2f6; padding: 15px; border-radius: 10px;}
@@ -17,14 +16,16 @@ st.markdown("""
 st.title("📈 Smart Trading Journal & AI Coach")
 
 # --- API Setup (Gemini Integration) ---
-if "GEMINI_API_KEY" in st.secrets:
-    try:
+model = None
+try:
+    if "GEMINI_API_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel('gemini-pro')
-    except Exception as e:
-        st.sidebar.error(f"AI Error: {e}")
-else:
-    st.sidebar.warning("⚠️ API Key Missing! Manage App > Settings > Secrets mein GEMINI_API_KEY daalein.")
+        # Naya Model Name Yahan Update Kiya Hai 👇
+        model = genai.GenerativeModel('gemini-1.5-flash')
+    else:
+        st.sidebar.warning("⚠️ API Key Missing! Manage App > Settings > Secrets mein check karein.")
+except Exception as e:
+    pass
 
 # --- File Uploader ---
 uploaded_files = st.file_uploader("📥 Upload Dhan or Delta CSV", accept_multiple_files=True, type=['csv'])
@@ -35,7 +36,6 @@ if uploaded_files:
     
     st.markdown("---")
     
-    # Logic for calculations
     df['P&L_Clean'] = 0.0
     df['Date_Clean'] = pd.NaT
     wins, losses, total_pnl = 0, 0, 0.0
@@ -95,10 +95,9 @@ if uploaded_files:
     st.markdown("---")
     st.subheader("🤖 Gemini AI Trading Report")
     if st.button("Analyze My Trading Psychology"):
-        if "GEMINI_API_KEY" in st.secrets:
+        if model is not None:
             with st.spinner("Gemini is reading your trades..."):
                 try:
-                    # Filter data to make it easy for AI
                     ai_data = edited_df[['Setup', 'Emotion', 'P&L_Clean']].tail(20).to_string()
                     prompt = f"""Analyze these recent trades. 
                     Focus on: 
@@ -113,6 +112,6 @@ if uploaded_files:
                 except Exception as e:
                     st.error(f"AI Error: {e}")
         else:
-            st.error("Pehle 'Secrets' mein API key daalein!")
+            st.error("⚠️ AI connection fail ho gaya. Kripya dhyan se Secrets mein GEMINI_API_KEY check karein. Pura format ekdum correct hona chahiye.")
 else:
     st.info("👆 Please upload your CSV files to see the magic!")
