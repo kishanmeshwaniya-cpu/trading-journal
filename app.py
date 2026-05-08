@@ -28,142 +28,111 @@ except Exception as e:
     pass
 
 # --- File Uploader ---
-uploaded_files = st.file_uploader("📥 Upload Dhan or Delta CSV (Upload older files too for AI evolution)", accept_multiple_files=True, type=['csv'])
+uploaded_files = st.file_uploader("📥 Upload Dhan & Delta CSVs together", accept_multiple_files=True, type=['csv'])
 
 if uploaded_files:
-    df_list = [pd.read_csv(f) for f in uploaded_files]
-    df = pd.concat(df_list, ignore_index=True)
+    all_processed_data = []
     
-    st.markdown("---")
-    
-    df['P&L_Clean'] = 0.0
-    df['Date_Clean'] = pd.NaT
-    wins, losses, total_pnl = 0, 0, 0.0
-    currency = "₹"
-    analytics_df = pd.DataFrame()
-    
-    # ---------------------------------------------
-    # 1. CORE DATA ENGINE
-    # ---------------------------------------------
-    if 'Time' in df.columns and 'Realised P&L' in df.columns:
-        # DELTA LOGIC
-        df['Date_Clean'] = pd.to_datetime(df['Time'].astype(str).str[:10], errors='coerce').dt.date
-        df['P&L_Clean'] = pd.to_numeric(df['Realised P&L'], errors='coerce').fillna(0) * 85
-        actual_trades = df[df['P&L_Clean'] != 0].copy()
-        wins = len(actual_trades[actual_trades['P&L_Clean'] > 0])
-        losses = len(actual_trades[actual_trades['P&L_Clean'] < 0])
-        total_pnl = actual_trades['P&L_Clean'].sum()
+    # --- DUAL ENGINE: Processing Each File Individually ---
+    for f in uploaded_files:
+        temp_df = pd.read_csv(f)
         
-        analytics_df = actual_trades.copy()
-        analytics_df['Asset'] = analytics_df['Contract']
-        analytics_df['Trade_Time'] = pd.to_datetime(analytics_df['Time'].astype(str).str[:19], errors='coerce')
+        # 1. Check if it's DELTA
+        if 'Time' in temp_df.columns and 'Realised P&L' in temp_df.columns:
+            temp_df['P&L_Clean'] = pd.to_numeric(temp_df['Realised P&L'], errors='coerce').fillna(0) * 85
+            temp_df = temp_df[temp_df['P&L_Clean'] != 0].copy()
+            temp_df['Date_Clean'] = pd.to_datetime(temp_df['Time'].astype(str).str[:10], errors='coerce').dt.date
+            temp_df['Trade_Time'] = pd.to_datetime(temp_df['Time'].astype(str).str[:19], errors='coerce')
+            temp_df['Asset'] = temp_df['Contract']
+            all_processed_data.append(temp_df[['Date_Clean', 'Trade_Time', 'Asset', 'P&L_Clean']])
+            
+        # 2. Check if it's DHAN
+        elif 'Date' in temp_df.columns and 'Trade Value' in temp_df.columns:
+            temp_df = temp_df[temp_df['Buy/Sell'].astype(str).str.upper().isin(['BUY', 'SELL'])].copy()
+            temp_df['Cashflow'] = temp_df.apply(lambda r: r['Trade Value'] if str(r['Buy/Sell']).upper() == 'SELL' else -r['Trade Value'], axis=1)
+            
+            # Grouping Dhan to get Net Trade
+            dhan_grouped = temp_df.groupby([pd.to_datetime(temp_df['Date']).dt.date, 'Name']).agg({'Cashflow': 'sum', 'Time': 'max'}).reset_index()
+            dhan_grouped.columns = ['Date_Clean', 'Asset', 'P&L_Clean', 'Time']
+            dhan_grouped = dhan_grouped[dhan_grouped['P&L_Clean'] != 0].copy()
+            dhan_grouped['Trade_Time'] = pd.to_datetime(dhan_grouped['Time'], format='mixed', errors='coerce')
+            all_processed_data.append(dhan_grouped[['Date_Clean', 'Trade_Time', 'Asset', 'P&L_Clean']])
 
-    elif 'Date' in df.columns and 'Trade Value' in df.columns:
-        # DHAN LOGIC
-        df = df[df['Buy/Sell'].astype(str).str.upper().isin(['BUY', 'SELL'])].copy()
-        df['Date_Clean'] = pd.to_datetime(df['Date'], errors='coerce').dt.date
-        df['Cashflow'] = df.apply(lambda r: r['Trade Value'] if str(r['Buy/Sell']).upper() == 'SELL' else -r['Trade Value'], axis=1)
+    # Combine everything into one Master Analytics DF
+    if all_processed_data:
+        analytics_df = pd.concat(all_processed_data, ignore_index=True)
         
-        # Group to find NET Trade PnL and use the closing Time
-        dhan_grouped = df.groupby(['Date_Clean', 'Name']).agg({'Cashflow': 'sum', 'Time': 'max'}).reset_index()
-        analytics_df = dhan_grouped[dhan_grouped['Cashflow'] != 0].copy()
-        analytics_df.rename(columns={'Cashflow': 'P&L_Clean', 'Name': 'Asset'}, inplace=True)
-        analytics_df['Trade_Time'] = pd.to_datetime(analytics_df['Time'], format='mixed', errors='coerce')
+        # UI TWEAK: Shorten Asset Names for clean look
+        analytics_df['Asset_Display'] = analytics_df['Asset'].astype(str).apply(lambda x: x[:15] + ".." if len(x) > 15 else x)
         
+        # --- METRICS CALCULATION ---
+        total_pnl = analytics_df['P&L_Clean'].sum()
         wins = len(analytics_df[analytics_df['P&L_Clean'] > 0])
         losses = len(analytics_df[analytics_df['P&L_Clean'] < 0])
-        total_pnl = analytics_df['P&L_Clean'].sum()
+        win_rate = (wins / (wins + losses) * 100) if (wins + losses) > 0 else 0
 
-    # --- TOP METRICS ---
-    win_rate = (wins / (wins + losses) * 100) if (wins + losses) > 0 else 0
-    st.subheader("📊 Performance Matrix")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric(f"Net P&L ({currency})", f"{total_pnl:,.2f}")
-    c2.metric("Win Rate", f"{win_rate:.1f}%")
-    c3.metric("Losing Trades", losses)
-    c4.metric("Profitable Trades", wins)
+        st.subheader("📊 Combined Performance Matrix (Dhan + Delta)")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Total Net P&L", f"₹{total_pnl:,.2f}")
+        c2.metric("Win Rate", f"{win_rate:.1f}%")
+        c3.metric("Loss Trades", losses)
+        c4.metric("Win Trades", wins)
 
-    # ---------------------------------------------
-    # 2. VISUAL GRAPHICS ENGINE (NEW)
-    # ---------------------------------------------
-    if not analytics_df.empty:
-        # FIX: Clean and shorten asset names so they don't look messy
-        analytics_df['Asset'] = analytics_df['Asset'].astype(str).apply(lambda x: x[:15] + ".." if len(x) > 15 else x)
-        
+        # ---------------------------------------------
+        # 2. VISUAL GRAPHICS ENGINE (NO HOVER, CLEAN NAMES)
+        # ---------------------------------------------
         st.markdown("---")
         st.subheader("👁️ Visual Data Insights")
         
-        # Chart 1: Equity Curve (Hover Disabled)
+        # Chart 1: Combined Equity Curve
         daily = analytics_df.groupby('Date_Clean')['P&L_Clean'].sum().reset_index()
         daily['Equity Curve'] = daily['P&L_Clean'].cumsum()
-        fig_eq = px.area(daily, x='Date_Clean', y='Equity Curve', title="📈 Portfolio Growth (Equity Curve)")
-        fig_eq.update_layout(hovermode=False) # Hover off
+        fig_eq = px.area(daily, x='Date_Clean', y='Equity Curve', title="📈 Total Portfolio Growth")
+        fig_eq.update_layout(hovermode=False) 
         st.plotly_chart(fig_eq, use_container_width=True)
         
-        # Chart 2 & 3: Asset and Time Analysis
         col_g1, col_g2 = st.columns(2)
         
         with col_g1:
-            asset_pnl = analytics_df.groupby('Asset')['P&L_Clean'].sum().reset_index()
-            fig_asset = px.bar(asset_pnl, x='Asset', y='P&L_Clean', title="🎯 P&L by Asset/Strike", color=asset_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
-            # FIX: Hover off & X-axis labels angled for neatness
+            asset_pnl = analytics_df.groupby('Asset_Display')['P&L_Clean'].sum().reset_index()
+            fig_asset = px.bar(asset_pnl, x='Asset_Display', y='P&L_Clean', title="🎯 P&L by Instrument", color=asset_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
             fig_asset.update_layout(showlegend=False, hovermode=False, xaxis_tickangle=-45)
             st.plotly_chart(fig_asset, use_container_width=True)
             
         with col_g2:
-            if 'Trade_Time' in analytics_df.columns:
+            if not analytics_df['Trade_Time'].isna().all():
                 analytics_df['Hour'] = analytics_df['Trade_Time'].dt.hour
                 time_pnl = analytics_df.groupby('Hour')['P&L_Clean'].sum().reset_index()
-                # Format hour for better reading
                 time_pnl['Hour_Label'] = time_pnl['Hour'].apply(lambda x: f"{int(x):02d}:00")
-                fig_time = px.bar(time_pnl, x='Hour_Label', y='P&L_Clean', title="⏰ P&L by Hour of the Day", color=time_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
-                # FIX: Hover off
+                fig_time = px.bar(time_pnl, x='Hour_Label', y='P&L_Clean', title="⏰ P&L by Hour (Combined)", color=time_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
                 fig_time.update_layout(showlegend=False, hovermode=False)
                 st.plotly_chart(fig_time, use_container_width=True)
 
-    # ---------------------------------------------
-    # 3. SELF-EVOLVING AI ENGINE
-    # ---------------------------------------------
-    st.markdown("---")
-    st.subheader("🧠 Gemini Core: Auto-Evolving Strategy")
-    st.write("Gemini will analyze your exact trade times, assets, and adapt its advice based on your current phase.")
-    
-    if st.button("Initialize Deep Scan"):
-        if model is not None and not analytics_df.empty:
-            with st.spinner("Decoding your psychological and technical footprints..."):
-                try:
-                    # Feed detailed analytics logic to AI
-                    ai_feed = analytics_df[['Date_Clean', 'Trade_Time', 'Asset', 'P&L_Clean']].tail(50).to_string(index=False)
-                    
-                    prompt = f"""
-                    Tu ek elite, self-evolving Algorithmic Trading Coach hai.
-                    Trader apna sequence of data de raha hai. Tera goal hai trader ko independent banana aur khud evolve hona.
-                    
-                    DATA RULES:
-                    - 'Trade_Time': Exact time the position was closed.
-                    - 'P&L_Clean': Pure Net Profit/Loss of that trade.
-                    
-                    Respond ONLY in direct, punchy Hinglish bullet points using this EXACT structure:
-                    
-                    📊 **Data Decode (Graphical Reality):**
-                    * (Analyze the time. E.g., "Data shows teri sabse zyada bleeding 11 AM se 12 PM ke beech ho rahi hai.")
-                    * (Analyze the asset. E.g., "Specific Nifty strikes mein tu over-leverage kar raha hai.")
-                    
-                    🔄 **Evolution & Pattern Check:**
-                    * (Identify the behavioral loop. Are they taking revenge trades within 5 minutes of a loss? Point out the exact timestamp from the data).
-                    
-                    ⚙️ **Systematic Upgrade (New Rule):**
-                    * (Give ONE algorithmic, mechanical rule to implement tomorrow. E.g., "System Rule: Loss ke baad screen 30 mins ke liye lock. No exceptions.")
-                    
-                    Trader's Chronological Ledger:
-                    {ai_feed}
-                    """
-                    
-                    response = model.generate_content(prompt)
-                    st.info(response.text)
-                except Exception as e:
-                    st.error(f"AI Core Error: {e}")
-        else:
-            st.error("⚠️ System needs data to run the AI core.")
+        # --- AI ENGINE ---
+        st.markdown("---")
+        st.subheader("🧠 Gemini Core: Combined Data Analysis")
+        if st.button("Initialize Hybrid Scan"):
+            if model is not None:
+                with st.spinner("Analyzing combined footprints..."):
+                    try:
+                        ai_feed = analytics_df[['Date_Clean', 'Trade_Time', 'Asset', 'P&L_Clean']].tail(50).to_string(index=False)
+                        prompt = f"""
+                        Analyze this combined data (Dhan and Delta).
+                        Tu ek elite coach hai, Hinglish mein respond kar.
+                        
+                        Respond using:
+                        📊 **Data Decode:** (Time and Asset patterns)
+                        🔄 **Evolution Check:** (Psychological loops/revenge trades)
+                        ⚙️ **Systematic Upgrade:** (One strict rule for tomorrow)
+                        
+                        Data:
+                        {ai_feed}
+                        """
+                        response = model.generate_content(prompt)
+                        st.info(response.text)
+                    except Exception as e:
+                        st.error(f"AI Core Error: {e}")
+    else:
+        st.warning("⚠️ Files uploaded par koi valid trade detect nahi hua.")
 else:
-    st.info("👆 Please drop your CSVs (add multiple days/weeks for evolution tracking).")
+    st.info("👆 Please drop Dhan and Delta CSVs together to see the combined magic!")
