@@ -34,27 +34,35 @@ if uploaded_files:
     df['Date_Clean'] = pd.NaT
     wins = 0
     losses = 0
-    total_trades = len(df)
+    total_trades = 0
     total_pnl = 0.0
+    currency = "₹"
     
     # ==========================================
     # 1. DETECT DELTA EXCHANGE
     # ==========================================
     if 'Time' in df.columns and 'Realised P&L' in df.columns:
+        st.info("💡 Delta Exchange detected. Auto-converting USD to INR (1$ = 85₹).")
         df['Date_Clean'] = pd.to_datetime(df['Time'].astype(str).str[:10], errors='coerce').dt.date
-        df['P&L_Clean'] = pd.to_numeric(df['Realised P&L'], errors='coerce').fillna(0)
+        
+        # Multiply by 85 to convert to INR
+        df['P&L_Clean'] = pd.to_numeric(df['Realised P&L'], errors='coerce').fillna(0) * 85
         
         actual_trades = df[df['P&L_Clean'] != 0]
         wins = len(actual_trades[actual_trades['P&L_Clean'] > 0])
         losses = len(actual_trades[actual_trades['P&L_Clean'] < 0])
         total_pnl = df['P&L_Clean'].sum()
         total_trades = len(df[df['Status'] == 'closed']) if 'Status' in df.columns else len(df)
-        currency = "USDT"
 
     # ==========================================
     # 2. DETECT DHAN EXCHANGE
     # ==========================================
     elif 'Date' in df.columns and 'Trade Value' in df.columns and 'Buy/Sell' in df.columns:
+        
+        # STRICT FILTER: Remove deposits/withdrawals, only keep real Trades
+        valid_trades = df['Buy/Sell'].astype(str).str.upper().isin(['BUY', 'SELL'])
+        df = df[valid_trades].copy()
+        
         df['Date_Clean'] = pd.to_datetime(df['Date'], errors='coerce').dt.date
         
         # Dhan P&L Calculation: Sell Value - Buy Value
@@ -66,8 +74,7 @@ if uploaded_files:
         grouped_trades = df.groupby(['Date_Clean', 'Name'])['Cashflow'].sum().reset_index()
         wins = len(grouped_trades[grouped_trades['Cashflow'] > 0])
         losses = len(grouped_trades[grouped_trades['Cashflow'] < 0])
-        total_trades = wins + losses # Count of completed positions
-        currency = "₹"
+        total_trades = wins + losses 
 
     # ==========================================
     # 3. FALLBACK FOR OTHER CSVs
@@ -83,7 +90,7 @@ if uploaded_files:
             wins = len(df[df['P&L_Clean'] > 0])
             losses = len(df[df['P&L_Clean'] < 0])
         total_completed = wins + losses
-        currency = "P&L"
+        total_trades = total_completed
 
     # --- KPI METRICS ---
     win_rate = (wins / (wins + losses) * 100) if (wins + losses) > 0 else 0
@@ -134,7 +141,6 @@ if uploaded_files:
                 if ai_df.empty:
                     ai_df = edited_df.head(10)
                 
-                # Keep it concise for AI
                 cols_to_send = ['Setup', 'Emotion', 'P&L_Clean']
                 if 'Name' in ai_df.columns: cols_to_send.append('Name')
                 if 'Contract' in ai_df.columns: cols_to_send.append('Contract')
@@ -152,6 +158,6 @@ if uploaded_files:
                 response = model.generate_content(prompt)
                 st.info(response.text)
             except Exception as e:
-                st.error(f"Error generating AI report. Please verify your GEMINI_API_KEY in Streamlit Secrets. Error: {e}")
+                st.error("Error generating AI report. Please verify your GEMINI_API_KEY in Streamlit Secrets.")
 else:
     st.info("👆 Please upload your Dhan or Delta CSV files.")
