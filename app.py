@@ -56,7 +56,6 @@ if uploaded_files:
         
         analytics_df = actual_trades.copy()
         analytics_df['Asset'] = analytics_df['Contract']
-        # FIX: Sirf start ka "YYYY-MM-DD HH:MM:SS" extract kiya hai taki Asia/Kolkata text error na de
         analytics_df['Trade_Time'] = pd.to_datetime(analytics_df['Time'].astype(str).str[:19], errors='coerce')
 
     elif 'Date' in df.columns and 'Trade Value' in df.columns:
@@ -88,13 +87,18 @@ if uploaded_files:
     # 2. VISUAL GRAPHICS ENGINE (NEW)
     # ---------------------------------------------
     if not analytics_df.empty:
+        # FIX: Clean and shorten asset names so they don't look messy
+        analytics_df['Asset'] = analytics_df['Asset'].astype(str).apply(lambda x: x[:15] + ".." if len(x) > 15 else x)
+        
         st.markdown("---")
         st.subheader("👁️ Visual Data Insights")
         
-        # Chart 1: Equity Curve
+        # Chart 1: Equity Curve (Hover Disabled)
         daily = analytics_df.groupby('Date_Clean')['P&L_Clean'].sum().reset_index()
         daily['Equity Curve'] = daily['P&L_Clean'].cumsum()
-        st.plotly_chart(px.area(daily, x='Date_Clean', y='Equity Curve', title="📈 Portfolio Growth (Equity Curve)"), use_container_width=True)
+        fig_eq = px.area(daily, x='Date_Clean', y='Equity Curve', title="📈 Portfolio Growth (Equity Curve)")
+        fig_eq.update_layout(hovermode=False) # Hover off
+        st.plotly_chart(fig_eq, use_container_width=True)
         
         # Chart 2 & 3: Asset and Time Analysis
         col_g1, col_g2 = st.columns(2)
@@ -102,7 +106,8 @@ if uploaded_files:
         with col_g1:
             asset_pnl = analytics_df.groupby('Asset')['P&L_Clean'].sum().reset_index()
             fig_asset = px.bar(asset_pnl, x='Asset', y='P&L_Clean', title="🎯 P&L by Asset/Strike", color=asset_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
-            fig_asset.update_layout(showlegend=False)
+            # FIX: Hover off & X-axis labels angled for neatness
+            fig_asset.update_layout(showlegend=False, hovermode=False, xaxis_tickangle=-45)
             st.plotly_chart(fig_asset, use_container_width=True)
             
         with col_g2:
@@ -112,7 +117,8 @@ if uploaded_files:
                 # Format hour for better reading
                 time_pnl['Hour_Label'] = time_pnl['Hour'].apply(lambda x: f"{int(x):02d}:00")
                 fig_time = px.bar(time_pnl, x='Hour_Label', y='P&L_Clean', title="⏰ P&L by Hour of the Day", color=time_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
-                fig_time.update_layout(showlegend=False)
+                # FIX: Hover off
+                fig_time.update_layout(showlegend=False, hovermode=False)
                 st.plotly_chart(fig_time, use_container_width=True)
 
     # ---------------------------------------------
