@@ -15,13 +15,24 @@ st.markdown("""
 
 st.title("📈 Smart Trading Journal & AI Coach")
 
-# --- API Setup (Gemini Integration) ---
+# --- API Setup (Auto-Detect Logic) ---
 model = None
 try:
     if "GEMINI_API_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        # Naya Model Name Yahan Update Kiya Hai 👇
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # SMART AUTO-DETECT: Khud model ka naam dhundhega
+        model_name = None
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                model_name = m.name
+                if 'flash' in m.name or 'pro' in m.name:
+                    break # Best available model pakad lega
+        
+        if model_name:
+            model = genai.GenerativeModel(model_name)
+        else:
+            st.sidebar.error("⚠️ Koi compatible AI model nahi mila. Google API issue.")
     else:
         st.sidebar.warning("⚠️ API Key Missing! Manage App > Settings > Secrets mein check karein.")
 except Exception as e:
@@ -112,6 +123,6 @@ if uploaded_files:
                 except Exception as e:
                     st.error(f"AI Error: {e}")
         else:
-            st.error("⚠️ AI connection fail ho gaya. Kripya dhyan se Secrets mein GEMINI_API_KEY check karein. Pura format ekdum correct hona chahiye.")
+            st.error("⚠️ AI connection fail ho gaya. Kripya dhyan se Secrets mein GEMINI_API_KEY check karein.")
 else:
     st.info("👆 Please upload your CSV files to see the magic!")
