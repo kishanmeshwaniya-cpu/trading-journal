@@ -30,54 +30,74 @@ if uploaded_files:
     
     st.markdown("---")
     
-    # --- AUTO-DETECT DELTA COLUMNS & CLEAN DATA ---
+    df['P&L_Clean'] = 0.0
+    df['Date_Clean'] = pd.NaT
+    wins = 0
+    losses = 0
+    total_trades = len(df)
+    total_pnl = 0.0
+    
+    # ==========================================
+    # 1. DETECT DELTA EXCHANGE
+    # ==========================================
     if 'Time' in df.columns and 'Realised P&L' in df.columns:
-        date_col = 'Time'
-        pnl_col = 'Realised P&L'
-        # Parse Delta Date (extracting just the 'YYYY-MM-DD' part intelligently)
-        df['Date_Clean'] = pd.to_datetime(df[date_col].astype(str).str[:10], errors='coerce').dt.date
+        df['Date_Clean'] = pd.to_datetime(df['Time'].astype(str).str[:10], errors='coerce').dt.date
+        df['P&L_Clean'] = pd.to_numeric(df['Realised P&L'], errors='coerce').fillna(0)
+        
+        actual_trades = df[df['P&L_Clean'] != 0]
+        wins = len(actual_trades[actual_trades['P&L_Clean'] > 0])
+        losses = len(actual_trades[actual_trades['P&L_Clean'] < 0])
+        total_pnl = df['P&L_Clean'].sum()
+        total_trades = len(df[df['Status'] == 'closed']) if 'Status' in df.columns else len(df)
+        currency = "USDT"
+
+    # ==========================================
+    # 2. DETECT DHAN EXCHANGE
+    # ==========================================
+    elif 'Date' in df.columns and 'Trade Value' in df.columns and 'Buy/Sell' in df.columns:
+        df['Date_Clean'] = pd.to_datetime(df['Date'], errors='coerce').dt.date
+        
+        # Dhan P&L Calculation: Sell Value - Buy Value
+        df['Cashflow'] = df.apply(lambda row: row['Trade Value'] if str(row['Buy/Sell']).upper() == 'SELL' else -row['Trade Value'], axis=1)
+        df['P&L_Clean'] = df['Cashflow']
+        total_pnl = df['Cashflow'].sum()
+        
+        # Calculate Wins/Losses by grouping Day & Asset
+        grouped_trades = df.groupby(['Date_Clean', 'Name'])['Cashflow'].sum().reset_index()
+        wins = len(grouped_trades[grouped_trades['Cashflow'] > 0])
+        losses = len(grouped_trades[grouped_trades['Cashflow'] < 0])
+        total_trades = wins + losses # Count of completed positions
+        currency = "₹"
+
+    # ==========================================
+    # 3. FALLBACK FOR OTHER CSVs
+    # ==========================================
     else:
-        # Fallback for Dhan or other CSVs
         date_col = next((c for c in df.columns if 'time' in c.lower() or 'date' in c.lower()), None)
         pnl_col = next((c for c in df.columns if 'pnl' in c.lower() or 'profit' in c.lower() or 'realised' in c.lower() or 'realized' in c.lower()), None)
         if date_col:
             df['Date_Clean'] = pd.to_datetime(df[date_col], errors='coerce').dt.date
-
-    # Total Executions
-    if 'Status' in df.columns:
-        total_trades = len(df[df['Status'] == 'closed'])
-    else:
-        total_trades = len(df)
-        
-    total_pnl = 0
-    win_rate = 0
-    wins = 0
-    
-    if pnl_col and pnl_col in df.columns:
-        # Clean P&L
-        df['P&L_Clean'] = pd.to_numeric(df[pnl_col], errors='coerce').fillna(0)
-        total_pnl = df['P&L_Clean'].sum()
-        
-        # Win Rate logic (Only count trades where P&L is not exactly 0)
-        actual_trades = df[df['P&L_Clean'] != 0]
-        wins = len(actual_trades[actual_trades['P&L_Clean'] > 0])
-        losses = len(actual_trades[actual_trades['P&L_Clean'] < 0])
+        if pnl_col:
+            df['P&L_Clean'] = pd.to_numeric(df[pnl_col], errors='coerce').fillna(0)
+            total_pnl = df['P&L_Clean'].sum()
+            wins = len(df[df['P&L_Clean'] > 0])
+            losses = len(df[df['P&L_Clean'] < 0])
         total_completed = wins + losses
-        win_rate = (wins / total_completed * 100) if total_completed > 0 else 0
+        currency = "P&L"
 
     # --- KPI METRICS ---
+    win_rate = (wins / (wins + losses) * 100) if (wins + losses) > 0 else 0
+    
     st.subheader("📊 Key Performance Indicators")
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total P&L (USDT)", f"{total_pnl:.2f}")
+    c1.metric(f"Total P&L ({currency})", f"{total_pnl:.2f}")
     c2.metric("Win Rate", f"{win_rate:.1f}%")
-    c3.metric("Total Executions", total_trades)
+    c3.metric("Total Trades", total_trades)
     c4.metric("Profitable Trades", wins)
 
     # --- CHARTS ---
-    if 'Date_Clean' in df.columns and pnl_col in df.columns:
+    if not df['Date_Clean'].isna().all() and df['P&L_Clean'].sum() != 0:
         st.markdown("---")
-        
-        # Daily P&L calculation
         daily_pnl = df.groupby('Date_Clean')['P&L_Clean'].sum().reset_index()
         daily_pnl['Cumulative P&L'] = daily_pnl['P&L_Clean'].cumsum()
         daily_pnl['Color'] = daily_pnl['P&L_Clean'].apply(lambda x: 'Profit' if x > 0 else 'Loss')
@@ -110,15 +130,19 @@ if uploaded_files:
     if st.button("Generate Performance Analysis"):
         with st.spinner("Analyzing your setups, emotions, and P&L..."):
             try:
-                # Sirf P&L wale ya tagged trades bhejna AI ko taaki analyze theek se ho
                 ai_df = edited_df[(edited_df['P&L_Clean'] != 0) | (edited_df['Setup'] != "") | (edited_df['Emotion'] != "")].copy()
                 if ai_df.empty:
                     ai_df = edited_df.head(10)
                 
-                summary_data = ai_df[['Setup', 'Emotion', pnl_col, 'Contract', 'Side']].copy()
+                # Keep it concise for AI
+                cols_to_send = ['Setup', 'Emotion', 'P&L_Clean']
+                if 'Name' in ai_df.columns: cols_to_send.append('Name')
+                if 'Contract' in ai_df.columns: cols_to_send.append('Contract')
+                
+                summary_data = ai_df[cols_to_send].copy()
                 
                 prompt = f"""
-                You are a professional trading coach. Analyze this data.
+                You are a strict, professional trading coach. Analyze this data.
                 Provide:
                 1. Strengths
                 2. Psychological Traps/Mistakes
@@ -128,6 +152,6 @@ if uploaded_files:
                 response = model.generate_content(prompt)
                 st.info(response.text)
             except Exception as e:
-                st.error("Error generating AI report. Please verify your GEMINI_API_KEY in Streamlit Secrets.")
+                st.error(f"Error generating AI report. Please verify your GEMINI_API_KEY in Streamlit Secrets. Error: {e}")
 else:
     st.info("👆 Please upload your Dhan or Delta CSV files.")
