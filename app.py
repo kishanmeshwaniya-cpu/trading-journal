@@ -134,11 +134,32 @@ if uploaded_files:
                         """
                         response = model.generate_content(prompt)
                         
-                        # Clean JSON Output
+                        # Syntax Error Fixed Logic (Safe JSON parsing)
                         raw_json = response.text.strip()
-                        if raw_json.startswith('
-http://googleusercontent.com/immersive_entry_chip/0
-http://googleusercontent.com/immersive_entry_chip/1
-http://googleusercontent.com/immersive_entry_chip/2
-
-Isko try kariye. Ab AI button dabate hi aapko ek Pie Chart aur Bar Chart milega jo exactly dikhayega ki kis pattern se sabse zyada loss ho raha hai, aur upar sirf ek line mein summary likhi aayegi. Koi lamba paragraph nahi!
+                        raw_json = raw_json.replace("```json", "").replace("```", "").strip()
+                        
+                        ai_data = json.loads(raw_json)
+                        
+                        # 1. The Short Text Overview
+                        st.success(f"💡 **AI Overview:** {ai_data['summary']}")
+                        
+                        # 2. The Charts (Pie and Bar)
+                        ai_df = pd.DataFrame(ai_data['chart_data'])
+                        
+                        c_pie, c_bar = st.columns(2)
+                        with c_pie:
+                            fig_pie = px.pie(ai_df, values='Impact', names='Mistake', title="🔥 Mistake Impact Breakdown (Donut)", hole=0.4, color_discrete_sequence=px.colors.sequential.Reds_r)
+                            fig_pie.update_layout(hovermode=False)
+                            st.plotly_chart(fig_pie, use_container_width=True)
+                            
+                        with c_bar:
+                            fig_bar = px.bar(ai_df, x='Mistake', y='Impact', title="📉 Severity Level (Bar)", color='Impact', color_continuous_scale='Reds')
+                            fig_bar.update_layout(hovermode=False, coloraxis_showscale=False)
+                            st.plotly_chart(fig_bar, use_container_width=True)
+                            
+                    except Exception as e:
+                        st.error(f"AI Parse Error. Try clicking again. (Error details: {e})")
+    else:
+        st.warning("⚠️ No valid trades detected.")
+else:
+    st.info("👆 Please drop your CSVs to see visual analytics.")
