@@ -15,7 +15,7 @@ st.markdown("""
 
 st.title("🤖 AI Trading Observer (Deep Analysis)")
 
-# --- API Setup (Auto-Detect Model) ---
+# --- API Setup ---
 model = None
 try:
     if "GEMINI_API_KEY" in st.secrets:
@@ -36,12 +36,15 @@ if uploaded_files:
     
     st.markdown("---")
     
+    # Defaults
     df['P&L_Clean'] = 0.0
     df['Date_Clean'] = pd.NaT
     wins, losses, total_pnl = 0, 0, 0.0
     currency = "₹"
-    ai_data = pd.DataFrame()
-
+    
+    # ---------------------------------------------
+    # DATA PROCESSING FOR DASHBOARD CHARTS
+    # ---------------------------------------------
     # Delta Detection
     if 'Time' in df.columns and 'Realised P&L' in df.columns:
         df['Date_Clean'] = pd.to_datetime(df['Time'].astype(str).str[:10], errors='coerce').dt.date
@@ -50,10 +53,6 @@ if uploaded_files:
         wins = len(actual_trades[actual_trades['P&L_Clean'] > 0])
         losses = len(actual_trades[actual_trades['P&L_Clean'] < 0])
         total_pnl = df['P&L_Clean'].sum()
-        
-        # Prepare Data for AI
-        ai_data = actual_trades[['Date_Clean', 'Contract', 'P&L_Clean']].copy()
-        ai_data.rename(columns={'P&L_Clean': 'Net_Profit_Loss', 'Contract': 'Asset'}, inplace=True)
 
     # Dhan Detection
     elif 'Date' in df.columns and 'Trade Value' in df.columns:
@@ -62,15 +61,9 @@ if uploaded_files:
         df['Cashflow'] = df.apply(lambda r: r['Trade Value'] if str(r['Buy/Sell']).upper() == 'SELL' else -r['Trade Value'], axis=1)
         df['P&L_Clean'] = df['Cashflow']
         total_pnl = df['Cashflow'].sum()
-        
-        # Group by Day & Asset to get NET PnL (Fixes the Buy/Sell value confusion)
         grouped = df.groupby(['Date_Clean', 'Name'])['Cashflow'].sum().reset_index()
         wins = len(grouped[grouped['Cashflow'] > 0])
         losses = len(grouped[grouped['Cashflow'] < 0])
-        
-        # Prepare Data for AI
-        ai_data = grouped[grouped['Cashflow'] != 0].copy()
-        ai_data.rename(columns={'Cashflow': 'Net_Profit_Loss', 'Name': 'Asset'}, inplace=True)
 
     # --- Metrics ---
     win_rate = (wins / (wins + losses) * 100) if (wins + losses) > 0 else 0
@@ -93,45 +86,52 @@ if uploaded_files:
             fig = px.bar(daily, x='Date_Clean', y='P&L_Clean', title="📅 Daily Profit/Loss", color=daily['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
             st.plotly_chart(fig, use_container_width=True)
 
-    # --- DEEP AI ANALYSIS ---
+    # ---------------------------------------------
+    # DEEP AI ANALYSIS (RAW LEDGER FEED)
+    # ---------------------------------------------
     st.markdown("---")
-    st.subheader("🤖 Gemini Deep Observer")
-    st.write("Click below for a crisp, visual summary of your trading patterns.")
+    st.subheader("🕵️‍♂️ Deep Quant Analysis")
+    st.write("Gemini aapke exact entry/exit timings aur asset patterns ko observe karega.")
     
-    if st.button("Generate Crisp Report"):
-        if model is not None and not ai_data.empty:
-            with st.spinner("Analyzing strictly Net P&L data..."):
+    if st.button("Analyze Trade Footprints"):
+        if model is not None:
+            with st.spinner("Scanning time, assets, and consecutive trade patterns..."):
                 try:
-                    data_string = ai_data.tail(30).to_string(index=False)
+                    # AI ko raw chronological data dena (Taki wo time aur revenge trading pakad sake)
+                    ai_cols = []
+                    for col in ['Date', 'Time', 'Name', 'Contract', 'Buy/Sell', 'Side', 'Trade Value', 'Realised P&L']:
+                        if col in df.columns: ai_cols.append(col)
+                    
+                    ai_data = df[ai_cols].tail(50).to_string(index=False)
                     
                     prompt = f"""
-                    You are a strict, no-nonsense trading coach. 
-                    DO NOT WRITE ESSAYS. DO NOT USE LONG PARAGRAPHS.
+                    Tu ek elite, brutal, aur highly specific Data Analyst/Trading Coach hai.
+                    Tera kaam hai is RAW chronological trading ledger se HIDDEN PATTERNS nikalna.
+                    Generic gyan (like "use stoploss") BILKUL NAHI Dena hai. Mujhe strictly data-driven observation chahiye.
                     
-                    Here is the trader's NET Profit and Loss per completed trade:
-                    {data_string}
+                    CRITICAL RULES FOR READING DATA:
+                    1. If you see 'Buy/Sell' and 'Trade Value' (Dhan Broker): A BUY and SELL of the same 'Name' on the same 'Date' is ONE complete trade. The difference is the actual Profit/Loss. DO NOT treat the raw 'Trade Value' as profit.
+                    2. Observe the 'Time' carefully: Are losses happening at a specific hour? Are trades placed within minutes of each other (revenge trading)? Which specific asset ('Name'/'Contract') causes the most bleed?
                     
-                    *Note: Negative numbers in 'Net_Profit_Loss' are true losses. Positive numbers are true profits.*
+                    Respond in crisp Hinglish (bullet points only, no essays). Structure it exactly like this:
                     
-                    Provide a brief, visual report in Hinglish using EXACTLY this structure:
+                    🔍 **Deep Data Patterns Observed:**
+                    * (Dynamically list specific findings. e.g., "Tune NIFTY 24450 CE pe 12:31 se 12:33 ke beech back-to-back overtrading ki hai.")
+                    * (Point out time-based patterns or specific asset struggles based on the data provided.)
+                    * (Add as many solid patterns as you find, don't limit to just 2.)
                     
-                    🔴 **Top 2 Mistakes (Patterns):**
-                    * (Mistake 1 in 1 brief line)
-                    * (Mistake 2 in 1 brief line)
+                    🛠️ **Precision Fixes:**
+                    * (How to fix these EXACT specific patterns. E.g., "11 AM ke baad continuous NIFTY trades avoid kar.")
                     
-                    💡 **How to Improve:**
-                    * (Actionable step 1 in 1 brief line)
-                    * (Actionable step 2 in 1 brief line)
-                    
-                    📈 **Expected Result (If Improved):**
-                    * (What will change in their P&L or Win Rate - 1 line)
+                    Here is the chronological ledger:
+                    {ai_data}
                     """
                     
                     response = model.generate_content(prompt)
-                    st.success(response.text)
+                    st.info(response.text)
                 except Exception as e:
                     st.error(f"AI Error: {e}")
         else:
-            st.error("⚠️ Data insufficient ya AI connect nahi hua.")
+            st.error("⚠️ AI connected nahi hai.")
 else:
     st.info("👆 Please upload your CSV files to start observation.")
