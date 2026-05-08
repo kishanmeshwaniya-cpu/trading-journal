@@ -4,7 +4,7 @@ import plotly.express as px
 import google.generativeai as genai
 
 # --- Page Setup ---
-st.set_page_config(page_title="Smart Trading Journal", page_icon="📈", layout="wide")
+st.set_page_config(page_title="AI Trading Observer", page_icon="🤖", layout="wide")
 
 st.markdown("""
     <style>
@@ -13,28 +13,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📈 Smart Trading Journal & AI Coach")
+st.title("🤖 AI Trading Observer (Deep Analysis)")
 
-# --- API Setup (Auto-Detect Logic) ---
+# --- API Setup (Auto-Detect Model) ---
 model = None
 try:
     if "GEMINI_API_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        
-        # SMART AUTO-DETECT: Khud model ka naam dhundhega
-        model_name = None
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                model_name = m.name
-                if 'flash' in m.name or 'pro' in m.name:
-                    break # Best available model pakad lega
-        
-        if model_name:
-            model = genai.GenerativeModel(model_name)
-        else:
-            st.sidebar.error("⚠️ Koi compatible AI model nahi mila. Google API issue.")
+        model_name = next((m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods), "gemini-1.5-flash")
+        model = genai.GenerativeModel(model_name)
     else:
-        st.sidebar.warning("⚠️ API Key Missing! Manage App > Settings > Secrets mein check karein.")
+        st.sidebar.warning("⚠️ API Key Missing! Settings > Secrets mein daalein.")
 except Exception as e:
     pass
 
@@ -72,57 +61,70 @@ if uploaded_files:
         wins = len(grouped[grouped['Cashflow'] > 0])
         losses = len(grouped[grouped['Cashflow'] < 0])
 
-    # --- Metrics Bar ---
+    # --- Metrics ---
     win_rate = (wins / (wins + losses) * 100) if (wins + losses) > 0 else 0
-    st.subheader("📊 Performance Summary")
+    st.subheader("📊 Current Performance")
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric(f"Total P&L ({currency})", f"{total_pnl:,.2f}")
+    c1.metric(f"Net P&L ({currency})", f"{total_pnl:,.2f}")
     c2.metric("Win Rate", f"{win_rate:.1f}%")
-    c3.metric("Profitable Trades", wins)
-    c4.metric("Losing Trades", losses)
+    c3.metric("Losing Trades", losses)
+    c4.metric("Profitable Trades", wins)
 
     # --- Charts ---
     if not df['Date_Clean'].isna().all() and total_pnl != 0:
         st.markdown("---")
         daily = df.groupby('Date_Clean')['P&L_Clean'].sum().reset_index()
         daily['Equity Curve'] = daily['P&L_Clean'].cumsum()
-        
         col_a, col_b = st.columns(2)
         with col_a:
-            st.plotly_chart(px.area(daily, x='Date_Clean', y='Equity Curve', title="📈 Equity Growth"), use_container_width=True)
+            st.plotly_chart(px.area(daily, x='Date_Clean', y='Equity Curve', title="📈 Portfolio Value"), use_container_width=True)
         with col_b:
-            fig = px.bar(daily, x='Date_Clean', y='P&L_Clean', title="📅 Daily P&L", color=daily['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
+            fig = px.bar(daily, x='Date_Clean', y='P&L_Clean', title="📅 Daily Profit/Loss", color=daily['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
             st.plotly_chart(fig, use_container_width=True)
 
-    # --- THE DROPDOWN (Trade Log) ---
-    st.markdown("---")
-    with st.expander("📖 Click to view/edit Detailed Trade Log (Setup & Emotions)"):
-        st.write("Apne trades ke liye Setup aur Emotion columns bharein:")
-        if 'Setup' not in df.columns: df.insert(0, 'Setup', "")
-        if 'Emotion' not in df.columns: df.insert(1, 'Emotion', "")
-        edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
+    # --- Raw Data (Hidden by Default) ---
+    with st.expander("📝 Raw Trade Data (No editing needed)"):
+        st.dataframe(df, use_container_width=True)
 
-    # --- AI COACH ---
+    # --- DEEP AI ANALYSIS ---
     st.markdown("---")
-    st.subheader("🤖 Gemini AI Trading Report")
-    if st.button("Analyze My Trading Psychology"):
+    st.subheader("🤖 Gemini Deep Observer")
+    st.write("Gemini aapke trades ko analyze karke losses ke patterns dhoondhega.")
+    
+    if st.button("Start Deep Analysis"):
         if model is not None:
-            with st.spinner("Gemini is reading your trades..."):
+            with st.spinner("Gemini aapka data observe kar raha hai..."):
                 try:
-                    ai_data = edited_df[['Setup', 'Emotion', 'P&L_Clean']].tail(20).to_string()
-                    prompt = f"""Analyze these recent trades. 
-                    Focus on: 
-                    1. Consistency of the Setups.
-                    2. Any psychological patterns in the 'Emotion' column.
-                    3. Give 1 specific rule to follow for tomorrow based on this data.
-                    Keep it short and professional.
-                    Data: {ai_data}"""
+                    # Sirf relevant data AI ko dena (Time, Price, P&L, Side)
+                    analysis_df = df[['Date_Clean', 'P&L_Clean']].copy()
+                    if 'Time' in df.columns: analysis_df['Full_Time'] = df['Time']
+                    if 'Contract' in df.columns: analysis_df['Asset'] = df['Contract']
+                    if 'Name' in df.columns: analysis_df['Asset'] = df['Name']
+                    
+                    data_string = analysis_df.tail(40).to_string()
+                    
+                    prompt = f"""
+                    You are a professional trading data scientist and coach. 
+                    Analyze this raw trading data for patterns. 
+                    
+                    Your Task:
+                    1. Look for recurring losses: Specific times of the day, specific assets, or frequency.
+                    2. Identify where the trader is doing well.
+                    3. Suggest 2-3 specific technical improvements to reduce losses.
+                    
+                    Language Requirement: 
+                    Respond in 'Hinglish' (mixture of Hindi and English) like a friendly mentor.
+                    Keep the tone direct and insightful.
+                    
+                    Trade Data:
+                    {data_string}
+                    """
                     
                     response = model.generate_content(prompt)
                     st.info(response.text)
                 except Exception as e:
                     st.error(f"AI Error: {e}")
         else:
-            st.error("⚠️ AI connection fail ho gaya. Kripya dhyan se Secrets mein GEMINI_API_KEY check karein.")
+            st.error("⚠️ AI connected nahi hai.")
 else:
-    st.info("👆 Please upload your CSV files to see the magic!")
+    st.info("👆 Please upload your CSV files to start observation.")
