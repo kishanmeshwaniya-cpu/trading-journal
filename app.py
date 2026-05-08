@@ -56,7 +56,8 @@ if uploaded_files:
         
         analytics_df = actual_trades.copy()
         analytics_df['Asset'] = analytics_df['Contract']
-        analytics_df['Trade_Time'] = pd.to_datetime(analytics_df['Time'], errors='coerce')
+        # FIX: Sirf start ka "YYYY-MM-DD HH:MM:SS" extract kiya hai taki Asia/Kolkata text error na de
+        analytics_df['Trade_Time'] = pd.to_datetime(analytics_df['Time'].astype(str).str[:19], errors='coerce')
 
     elif 'Date' in df.columns and 'Trade Value' in df.columns:
         # DHAN LOGIC
