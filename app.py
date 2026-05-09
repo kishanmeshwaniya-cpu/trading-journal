@@ -14,26 +14,27 @@ st.markdown("""
     <style>
     .stApp { background-color: #fcfcfc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-    /* Logo and Header Spacing Fix */
-    .block-container { padding-top: 2rem !important; }
+    /* Logo and Header Spacing Fix - Back to original left placement and small size */
+    .block-container { padding-top: 1rem !important; }
     
     .logo-container {
-        text-align: left;
-        margin-bottom: 10px;
+        text-align: left; /* Strict left alignment */
+        margin-bottom: 5px; /* Minimal bottom margin */
         padding: 0;
     }
     
     .logo-img {
-        max-width: 250px; /* Original size restored */
+        max-width: 150px; /* Small size, restored to original feel */
         height: auto;
         display: block;
+        object-fit: contain; /* Ensures logo doesn't cut */
     }
 
     /* Heading Black */
     .major-title {
         text-align: left; 
         color: #000000;
-        margin-top: 10px; 
+        margin-top: 5px; 
         margin-bottom: 20px; 
         font-size: 38px; 
         font-weight: 800;
@@ -110,11 +111,11 @@ st.markdown("""
     }
 
     .modebar { display: none !important; }
-    hr { margin: 2em 0 !important; }
+    hr { margin: 1.5em 0 !important; } /* Reduced spacing */
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER ---
+# --- HEADER (LOGO THEN HEADING) ---
 logo_path = "logo-full.png"
 if os.path.exists(logo_path):
     with open(logo_path, "rb") as f:
