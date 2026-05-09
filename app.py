@@ -14,15 +14,28 @@ st.markdown("""
     <style>
     .stApp { background-color: #fcfcfc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-    /* Heading Green Gradient Highlight (Keep same as before) */
-    .major-title {
+    /* GREEN GRADIENT for Main Heading & Highlights */
+    .major-title, .highlight-green {
         text-align: left; 
-        color: #89d957; 
+        background: -webkit-linear-gradient(#89d957, #c9e265);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         margin-top: 15px; 
         margin-bottom: 5px; 
         font-size: 38px; 
         font-weight: 800;
         line-height: 1.2;
+    }
+
+    /* BLUE GRADIENT ONLY for Combined Performance Matrix Heading */
+    .matrix-title-blue {
+        background: -webkit-linear-gradient(#000000, #1e4ae6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 24px;
+        font-weight: 800;
+        margin-bottom: 15px;
+        display: inline-block;
     }
 
     /* THE WHITE BOX DESIGN */
@@ -39,11 +52,9 @@ st.markdown("""
         width: 100%;
     }
 
-    /* Individual Data Item Styling Inside Box */
+    /* Individual Data Item Styling Inside Box (Blue-Black Gradient) */
     .metric-item { flex: 1; }
     .metric-label { color: #555; font-weight: bold; font-size: 14px; margin-bottom: 8px; }
-    
-    /* VALUE STYLING: Updated to Blue-Black Gradient (#000000 & #1e4ae6) */
     .metric-value { 
         background: -webkit-linear-gradient(#000000, #1e4ae6);
         -webkit-background-clip: text;
@@ -61,7 +72,6 @@ st.markdown("""
         margin-bottom: 20px !important;
     }
 
-    /* Hide Plotly Modebar */
     .modebar { display: none !important; }
     </style>
 """, unsafe_allow_html=True)
@@ -101,9 +111,10 @@ if uploaded_files:
         total = w + l
         wr = (w / total * 100) if total > 0 else 0
 
-        # --- THE MATRIX (BLUE-BLACK GRADIENT) ---
-        st.markdown("<h4 style='color: #89d957; margin-bottom: 15px;'>📊 Combined Performance Matrix</h4>", unsafe_allow_html=True)
+        # --- THE MATRIX HEADING (BLUE GRADIENT) ---
+        st.markdown('<div class="matrix-title-blue">📊 Combined Performance Matrix</div>', unsafe_allow_html=True)
         
+        # Matrix Box with Blue-Black Values
         st.markdown(f"""
             <div class="matrix-box">
                 <div class="metric-item">
@@ -129,8 +140,10 @@ if uploaded_files:
             </div>
         """, unsafe_allow_html=True)
 
-        # --- Visual Data Chart ---
+        # --- Visual Data Insights (Wapas Green Highlighted) ---
         st.markdown("---")
+        st.markdown('<div class="highlight-green">👁️ Visual Data Insights</div>', unsafe_allow_html=True)
+        
         daily = final_df.groupby('Date')['P&L'].sum().reset_index()
         daily['Equity'] = daily['P&L'].cumsum()
         
