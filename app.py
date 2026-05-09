@@ -9,7 +9,7 @@ import os
 # --- Page Setup (MUST be first) ---
 st.set_page_config(page_title="Challengevala Trader Journal", page_icon="📈", layout="wide")
 
-# --- MASTER STRICT CSS (Removing All Borders & Implementing Gemini Depth) ---
+# --- MASTER UNIVERSAL DESIGN CSS ---
 st.markdown("""
     <style>
     /* 1. Page Background & Clean Look */
@@ -26,38 +26,28 @@ st.markdown("""
         line-height: 1.2;
     }
 
-    /* 3. PREMIUM METRICS LAYOUT (STRICTLY NO BORDER + SOFT DEPTH) */
-    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] { padding: 0 10px; }
-    div[data-testid="stMetric"] {
-        background-color: #ffffff;
-        padding: 24px !important;
+    /* 3. UNIVERSAL BOX DESIGN (NO BORDER + LOCKED DEPTH) */
+    /* Applied to Metrics, Charts, AI Boxes, and Timeline */
+    div[data-testid="stMetric"], div[data-testid="stPlotlyChart"], .timeline-box, .matrix-container {
+        background-color: #ffffff !important;
+        border: none !important;
         border-radius: 24px !important;
-        border: none !important; /* Borders removed */
-        outline: none !important;
-        /* Exact depth shadow matching your attached example */
         box-shadow: 0 10px 40px rgba(0,0,0,0.04), 0 2px 10px rgba(0,0,0,0.01) !important;
-        width: 100% !important;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-height: 120px;
+        padding: 24px !important;
+        margin-bottom: 20px !important;
     }
+
+    /* Matrix Main Wrapper */
+    .matrix-container {
+        padding: 30px !important;
+        margin-top: 10px;
+    }
+
+    /* Metric internal styling */
     div[data-testid="stMetric"] label { color: #555; font-weight: bold; font-size: 14px; margin-bottom: 5px; }
     div[data-testid="stMetricValue"] > div { color: #1976d2; font-size: 28px !important; font-weight: 700 !important; }
 
-    /* 4. CHARTS (STRICTLY NO BORDER + SOFT DEPTH) */
-    div[data-testid="stPlotlyChart"] {
-        background-color: #ffffff;
-        padding: 24px;
-        border-radius: 24px;
-        border: none !important; /* Borders removed */
-        box-shadow: 0 10px 40px rgba(0,0,0,0.04), 0 2px 10px rgba(0,0,0,0.01) !important;
-        margin-bottom: 20px;
-        overflow: hidden !important; 
-    }
-    iframe { overflow: hidden !important; border: none !important; }
-
-    /* 5. Minimalist File Uploader (No border) */
+    /* 4. Minimalist File Uploader (No border) */
     div[data-testid="stFileUploader"] {
         background-color: white;
         border-radius: 20px;
@@ -67,20 +57,8 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* 6. TIMELINE & AI BOXES (STRICTLY NO BORDER + SOFT DEPTH) */
-    .timeline-box {
-        background-color: #ffffff;
-        padding: 25px;
-        border-radius: 24px;
-        border: none !important; /* Borders removed */
-        box-shadow: 0 10px 40px rgba(0,0,0,0.04), 0 2px 10px rgba(0,0,0,0.01);
-        margin-bottom: 20px;
-        width: 100%;
-        overflow: hidden;
-    }
+    /* 5. Timeline styling */
     .timeline-title {color: #1976d2; font-weight: bold; font-size: 18px; margin-bottom: 15px;}
-    
-    /* Progress Bar Styling */
     .trade-row { display: flex; align-items: center; margin-bottom: 12px; min-height: 40px; width: 100%; }
     .trade-time { width: 10%; min-width: 70px; font-weight: bold; font-size: 15px; color: #444; }
     .trade-progress-wrapper { width: 70%; background-color: #f0f2f6; border-radius: 12px; height: 28px; position: relative; overflow: hidden; margin: 0 15px; }
@@ -88,9 +66,9 @@ st.markdown("""
     .trade-win-text { font-size: 13px; font-weight: bold; white-space: nowrap; }
     .trade-pnl { width: 20%; min-width: 130px; text-align: right; font-weight: bold; font-size: 17px; }
     
-    /* 7. Plotly hide modebar */
     .modebar { display: none !important; }
-    
+    iframe { overflow: hidden !important; border: none !important; }
+
     /* Brand Buttons */
     .stButton>button {
         background-color: #1976d2 !important;
@@ -127,7 +105,6 @@ try:
 except Exception as e:
     pass
 
-# --- Categorization Logic ---
 def categorize_asset(name):
     name = str(name).upper()
     if name.startswith('C-') or name.startswith('P-'):
@@ -143,7 +120,6 @@ def categorize_asset(name):
     if 'NIFTY' in name: return 'Nifty 50 Futures'
     return 'Other'
 
-# --- File Uploader ---
 uploaded_files = st.file_uploader("📥 Upload Dhan & Delta CSVs together", accept_multiple_files=True, type=['csv'])
 
 if uploaded_files:
@@ -176,13 +152,18 @@ if uploaded_files:
         total_trades = wins + losses 
         win_rate = (wins / total_trades * 100) if total_trades > 0 else 0
 
+        # --- Combined Performance Matrix (Wrapped in Main Box) ---
         st.markdown("<h4 style='color: #1976d2; margin-bottom: 15px;'>📊 Combined Performance Matrix</h4>", unsafe_allow_html=True)
+        
+        # Open Main Wrapper Box
+        st.markdown('<div class="matrix-container">', unsafe_allow_html=True)
         m1, m2, m3, m4, m5 = st.columns(5)
         m1.metric("Total Net P&L", f"₹{total_pnl:,.2f}")
         m2.metric("Win Rate", f"{win_rate:.1f}%")
         m3.metric("Total Trades", total_trades)
         m4.metric("Win Trades", wins)
         m5.metric("Loss Trades", losses)
+        st.markdown('</div>', unsafe_allow_html=True) # Close Main Wrapper Box
 
         # --- Visual Data Insights ---
         st.markdown("---")
