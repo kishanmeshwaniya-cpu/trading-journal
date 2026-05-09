@@ -5,7 +5,7 @@ import google.generativeai as genai
 import json
 
 # --- Page Setup ---
-st.set_page_config(page_title="Elite Quant Dashboard", page_icon="📈", layout="wide")
+st.set_page_config(page_title="Challengevala Trader Dashboard", page_icon="📈", layout="wide")
 
 st.markdown("""
     <style>
@@ -15,7 +15,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📈 Elite Quant Dashboard & Auto-Evolving AI")
+# --- BRANDING HEADER (CENTERED WIDE LOGO) ---
+col1, col2, col3 = st.columns([1, 2, 1]) # Wide logo ke liye center column ki width adjust ki hai
+with col2:
+    try:
+        # Aapka naya main logo
+        st.image("logo-full.png", use_container_width=True)
+    except Exception as e:
+        # Fallback text
+        st.markdown("<h1 style='text-align: center; color: #1976d2; margin-bottom: 0px;'>👑 Challengevala Trader</h1>", unsafe_allow_html=True)
+
+st.markdown("<h3 style='text-align: center; color: #555; margin-top: -10px; margin-bottom: 20px;'>📈 Elite Quant Dashboard & Auto-Evolving AI</h3>", unsafe_allow_html=True)
+st.markdown("---")
 
 # --- API Setup ---
 model = None
@@ -84,7 +95,7 @@ if uploaded_files:
         losses = len(analytics_df[analytics_df['P&L_Clean'] < 0])
         win_rate = (wins / (wins + losses) * 100) if (wins + losses) > 0 else 0
 
-        st.subheader("📊 Combined Performance Matrix (Dhan + Delta)")
+        st.subheader("📊 Combined Performance Matrix")
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Total Net P&L", f"₹{total_pnl:,.2f}")
         c2.metric("Win Rate", f"{win_rate:.1f}%")
@@ -121,7 +132,7 @@ if uploaded_files:
                 st.plotly_chart(fig_time, use_container_width=True)
 
         # ---------------------------------------------
-        # DEEP TIME-BASED AI ENGINE (PRO UI VERSION)
+        # DEEP TIME-BASED AI ENGINE
         # ---------------------------------------------
         st.markdown("---")
         st.subheader("⏳ Deep Time Horizon Study: Finding Your Ultimate Edge")
@@ -187,7 +198,7 @@ if uploaded_files:
                             
                             st.success(f"🎯 **Time Horizon Edge:** {ai_data['summary']}")
                             
-                            # PROGRESS BAR UI FIX (Removed formatting spaces to stop Markdown leakage)
+                            # PROGRESS BAR UI 
                             st.markdown("<h4 style='margin-top: 20px; margin-bottom: 20px;'>📊 Win Rate & Profit Timeline</h4>", unsafe_allow_html=True)
                             
                             progress_html = "<div style='background: white; padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; margin-bottom: 30px;'>"
@@ -206,13 +217,12 @@ if uploaded_files:
                                 
                                 text_color = "white" if win_rate > 15 else "#333"
 
-                                # Single line string to prevent Streamlit from making it a markdown code block
                                 progress_html += f"<div style='display: flex; align-items: center; margin-bottom: 15px;'><div style='width: 10%; font-weight: bold; font-size: 16px; color: #444;'>{time_label}</div><div style='width: 65%; background-color: #f0f2f6; border-radius: 8px; height: 26px; position: relative; overflow: hidden; margin: 0 15px;'><div style='width: {win_rate}%; background-color: {bar_color}; height: 100%; border-radius: 8px; display: flex; align-items: center; padding-left: 10px;'><span style='color: {text_color}; font-size: 13px; font-weight: bold; white-space: nowrap;'>{win_rate}% Win Rate</span></div></div><div style='width: 20%; text-align: right; color: {pnl_color}; font-weight: bold; font-size: 16px;'>{pnl_sign}₹{pnl:,.0f}</div></div>"
                             
                             progress_html += "</div>"
                             st.markdown(progress_html, unsafe_allow_html=True)
 
-                            # Action Cards UI FIX
+                            # Action Cards UI 
                             st.markdown("### ⏳ Ultimate Time-Based Strategy")
                             cols = st.columns(len(ai_data['insights']))
                             
@@ -225,7 +235,6 @@ if uploaded_files:
                                     bg_color = "#e8f5e9"
                                     
                                 with cols[i]:
-                                    # Formatted as a single block to avoid Markdown parsing bugs
                                     card_html = f"""<div style="background-color: {bg_color}; padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; border-top: 5px solid {border_color}; box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 250px; display: flex; flex-direction: column;"><h4 style="color: {border_color}; margin-top: 0; margin-bottom: 5px; font-size: 18px;">{item['Zone_Name']}</h4><h5 style="color: #444; margin-top: 0; margin-bottom: 15px; font-size: 15px; border-bottom: 1px solid #ccc; padding-bottom: 8px;">⏰ <b>Time Window:</b> {item['Timeframe']}</h5><div style="flex-grow: 1;"><p style="color: #555555; font-size: 14px; margin: 8px 0; line-height: 1.4;"><span style="color: #d32f2f; font-weight: bold;">❌ Avoid:</span> {item['Avoid']}</p><p style="color: #555555; font-size: 14px; margin: 8px 0; line-height: 1.4;"><span style="color: #1976d2; font-weight: bold;">🛠️ Focus:</span> {item['Improve']}</p></div><div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #dcdcdc;"><p style="color: #2e7d32; font-size: 14px; margin: 0; font-weight: 500;">✅ Benefit: {item['Benefit']}</p></div></div>"""
                                     st.markdown(card_html, unsafe_allow_html=True)
                                     
