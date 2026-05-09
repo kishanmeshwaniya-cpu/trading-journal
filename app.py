@@ -5,16 +5,23 @@ import google.generativeai as genai
 import json
 
 # --- Page Setup ---
-# Ye hamesha pehli Streamlit command honi chahiye
 st.set_page_config(page_title="Challengevala Trader Dashboard", page_icon="📈", layout="wide")
 
-# Custom CSS for uniform alignment and premium feel
+# Custom CSS for uniform alignment and BRAND THEME
 st.markdown("""
     <style>
-    .stMetric {background-color: #f0f2f6; padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0;}
+    /* Metric boxes styling matching Brand Blue */
+    .stMetric {
+        background-color: #ffffff; 
+        padding: 20px; 
+        border-radius: 12px; 
+        border: 1px solid #e0e0e0;
+        border-top: 5px solid #1976d2; /* Navy Blue Brand Color */
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
     .stExpander {border: 1px solid #e6e9ef; border-radius: 10px;}
     
-    /* Ensure markdown columns for progress bars align perfectly horizontally and vertically */
+    /* Ensure markdown columns for progress bars align perfectly */
     .trade-timeline-container {display: flex; flex-direction: column; width: 100%;}
     .trade-row {display: flex; align-items: center; margin-bottom: 12px; min-height: 40px;}
     .trade-time {width: 60px; font-weight: bold; font-size: 16px; color: #444;}
@@ -25,18 +32,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- BRANDING HEADER (LEFT ALIGNED LOGO) ---
-col1, col2 = st.columns([3, 7]) # 30% space for Logo so it doesn't become giant
+# --- BRANDING HEADER (LEFT ALIGNED & THEMED) ---
+col1, col2 = st.columns([3, 7])
 
 with col1:
     try:
-        # Aapka wide logo yahan load hoga
         st.image("logo-full.png", use_container_width=True)
     except Exception as e:
-        # Agar image load nahi hui toh text dikhega
         st.markdown("<h1 style='text-align: left; color: #1976d2; margin-bottom: 5px; font-size: 38px; font-weight: 800;'>👑 Challengevala Trader</h1>", unsafe_allow_html=True)
 
-st.markdown("<h2 style='text-align: left; color: #555; margin-top: -5px; margin-bottom: 25px; font-size: 22px; font-weight: 400;'>📈 Elite Quant Dashboard & Auto-Evolving AI</h2>", unsafe_allow_html=True)
+# Heading matching the logo color and bigger size
+st.markdown("<h2 style='text-align: left; color: #1976d2; margin-top: -5px; margin-bottom: 25px; font-size: 28px; font-weight: 600;'>📈 Elite Quant Dashboard & Auto-Evolving AI</h2>", unsafe_allow_html=True)
 st.markdown("---")
 
 # --- API Setup ---
@@ -106,7 +112,7 @@ if uploaded_files:
         losses = len(analytics_df[analytics_df['P&L_Clean'] < 0])
         win_rate = (wins / (wins + losses) * 100) if (wins + losses) > 0 else 0
 
-        st.subheader("📊 Combined Performance Matrix")
+        st.markdown("<h3 style='color: #1976d2; margin-bottom: 15px;'>📊 Combined Performance Matrix</h3>", unsafe_allow_html=True)
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Total Net P&L", f"₹{total_pnl:,.2f}")
         c2.metric("Win Rate", f"{win_rate:.1f}%")
@@ -114,22 +120,30 @@ if uploaded_files:
         c4.metric("Win Trades", wins)
 
         # ---------------------------------------------
-        # GRAPHICS ENGINE 
+        # GRAPHICS ENGINE (WITH FIXED LABELS & COLORS)
         # ---------------------------------------------
         st.markdown("---")
-        st.subheader("👁️ Visual Data Insights")
+        st.markdown("<h3 style='color: #1976d2; margin-bottom: 15px;'>👁️ Visual Data Insights</h3>", unsafe_allow_html=True)
         
         daily = analytics_df.groupby('Date_Clean')['P&L_Clean'].sum().reset_index()
         daily['Equity Curve'] = daily['P&L_Clean'].cumsum()
-        fig_eq = px.area(daily, x='Date_Clean', y='Equity Curve', title="📈 Total Portfolio Growth")
+        
+        # Fixed Labels & Brand Blue Color
+        fig_eq = px.area(daily, x='Date_Clean', y='Equity Curve', title="📈 Total Portfolio Growth",
+                         labels={'Date_Clean': 'Trading Date', 'Equity Curve': 'Total Portfolio Equity (₹)'})
+        fig_eq.update_traces(line_color="#1976d2", fillcolor="rgba(25, 118, 210, 0.2)") # Blue theme
         fig_eq.update_layout(hovermode=False) 
         st.plotly_chart(fig_eq, use_container_width=True)
         
         col_g1, col_g2 = st.columns(2)
         
+        # Lime Green (#8BC34A) and Red (#EF553B) for bars
         with col_g1:
             category_pnl = analytics_df.groupby('Category')['P&L_Clean'].sum().reset_index()
-            fig_asset = px.bar(category_pnl, x='Category', y='P&L_Clean', title="🎯 P&L by Instrument Category", color=category_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
+            fig_asset = px.bar(category_pnl, x='Category', y='P&L_Clean', title="🎯 P&L by Instrument Category", 
+                               labels={'Category': 'Instrument Category', 'P&L_Clean': 'Net P&L (₹)'},
+                               color=category_pnl['P&L_Clean'] > 0, 
+                               color_discrete_map={True: "#8BC34A", False: "#EF553B"})
             fig_asset.update_layout(showlegend=False, hovermode=False, xaxis_tickangle=0)
             st.plotly_chart(fig_asset, use_container_width=True)
             
@@ -138,7 +152,10 @@ if uploaded_files:
                 analytics_df['Hour'] = analytics_df['Trade_Time'].dt.hour
                 time_pnl = analytics_df.groupby('Hour')['P&L_Clean'].sum().reset_index()
                 time_pnl['Hour_Label'] = time_pnl['Hour'].apply(lambda x: f"{int(x):02d}:00")
-                fig_time = px.bar(time_pnl, x='Hour_Label', y='P&L_Clean', title="⏰ P&L by Hour", color=time_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
+                fig_time = px.bar(time_pnl, x='Hour_Label', y='P&L_Clean', title="⏰ P&L by Hour", 
+                                  labels={'Hour_Label': 'Time of Day', 'P&L_Clean': 'Net P&L (₹)'},
+                                  color=time_pnl['P&L_Clean'] > 0, 
+                                  color_discrete_map={True: "#8BC34A", False: "#EF553B"})
                 fig_time.update_layout(showlegend=False, hovermode=False)
                 st.plotly_chart(fig_time, use_container_width=True)
 
@@ -146,9 +163,9 @@ if uploaded_files:
         # DEEP TIME-BASED AI ENGINE (PRO UI VERSION)
         # ---------------------------------------------
         st.markdown("---")
-        st.subheader("⏳ Deep Time Horizon Study: Finding Your Ultimate Edge")
+        st.markdown("<h3 style='color: #1976d2; margin-bottom: 15px;'>⏳ Deep Time Horizon Study: Finding Your Ultimate Edge</h3>", unsafe_allow_html=True)
         
-        if st.button("Generate Time Horizon Study"):
+        if st.button("Generate Time Horizon Study", type="primary"):
             if model is not None:
                 with st.spinner("Analyzing hours, win rates, and profitability to find your best trading times..."):
                     try:
@@ -174,7 +191,6 @@ if uploaded_files:
                             You have their Hourly Net Profit, Win Rate %, and Total Trades.
                             
                             Find the absolute Best Time (Golden Zone) and absolute Worst Time (Danger Zone) based on a COMBINATION of Profitability and Win Rate.
-                            (e.g., A time with huge profit but 20% win rate is lucky, not a Golden Zone. Look for consistency).
                             
                             CRITICAL: RESPOND ONLY WITH RAW JSON. NO MARKDOWN. ALL TEXT IN HINGLISH.
                             Format:
@@ -208,25 +224,23 @@ if uploaded_files:
                             raw_json = response.text.replace("`"*3 + "json", "").replace("`"*3, "").strip()
                             ai_data = json.loads(raw_json)
                             
-                            # 1. AI Summary
                             st.success(f"🎯 **Time Horizon Edge:** {ai_data['summary']}")
                             
-                            # 2. BEAUTIFUL SYMMETRICAL PROGRESS BAR UI
-                            st.markdown("<h4 style='margin-top: 25px; margin-bottom: 15px;'>📊 Win Rate & Profit Timeline</h4>", unsafe_allow_html=True)
+                            st.markdown("<h4 style='color: #1976d2; margin-top: 25px; margin-bottom: 15px;'>📊 Win Rate & Profit Timeline</h4>", unsafe_allow_html=True)
                             
-                            progress_html = "<div class='trade-timeline-container' style='background: white; padding: 25px; border-radius: 12px; border: 1px solid #e0e0e0; margin-bottom: 35px;'>"
+                            progress_html = "<div class='trade-timeline-container' style='background: white; padding: 25px; border-radius: 12px; border: 1px solid #e0e0e0; border-top: 5px solid #1976d2; margin-bottom: 35px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>"
                             
                             for _, row in time_stats.iterrows():
                                 time_label = row['Time_Label']
                                 win_rate = row['Win_Rate_%']
                                 pnl = row['Net_PnL']
                                 
-                                pnl_color = "#00CC96" if pnl >= 0 else "#d32f2f"
+                                pnl_color = "#8BC34A" if pnl >= 0 else "#EF553B" # Brand Green or Red
                                 pnl_sign = "+" if pnl >= 0 else ""
                                 
-                                bar_color = "#1976d2"
-                                if win_rate >= 60: bar_color = "#00CC96"
-                                elif win_rate <= 40: bar_color = "#ef5350"
+                                bar_color = "#1976d2" # Brand Blue
+                                if win_rate >= 60: bar_color = "#8BC34A" # Brand Green
+                                elif win_rate <= 40: bar_color = "#EF553B" # Red
                                 
                                 text_color = "white" if win_rate > 20 else "#333"
 
@@ -244,8 +258,8 @@ if uploaded_files:
                             progress_html += "</div>"
                             st.markdown(progress_html, unsafe_allow_html=True)
 
-                            # 3. Action Cards (Danger vs Golden Zone)
-                            st.markdown("### ⏳ Ultimate Time-Based Strategy")
+                            # Action Cards UI 
+                            st.markdown("<h4 style='color: #1976d2; margin-bottom: 15px;'>⏳ Ultimate Time-Based Strategy</h4>", unsafe_allow_html=True)
                             cols = st.columns(len(ai_data['insights']))
                             
                             for i, item in enumerate(ai_data['insights']):
@@ -253,8 +267,8 @@ if uploaded_files:
                                     border_color = "#d32f2f"
                                     bg_color = "#ffebee"
                                 else:
-                                    border_color = "#388e3c"
-                                    bg_color = "#e8f5e9"
+                                    border_color = "#8BC34A" # Brand Green border for Golden Zone
+                                    bg_color = "#f1f8e9"
                                     
                                 with cols[i]:
                                     st.markdown(f'''
