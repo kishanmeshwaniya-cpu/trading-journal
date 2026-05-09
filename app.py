@@ -14,10 +14,10 @@ st.markdown("""
     <style>
     .stApp { background-color: #fcfcfc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-    /* BLACK Heading for Elite Quant Dashboard */
+    /* Heading Black */
     .major-title {
         text-align: left; 
-        color: #000000; /* Strictly Black */
+        color: #000000;
         margin-top: 15px; 
         margin-bottom: 5px; 
         font-size: 38px; 
@@ -25,18 +25,17 @@ st.markdown("""
         line-height: 1.2;
     }
 
-    /* GREEN GRADIENT for other Highlights */
-    .highlight-green {
+    /* GREEN GRADIENT for Output & Highlighted Text */
+    .highlight-green, .metric-value {
         text-align: left; 
         background: -webkit-linear-gradient(#89d957, #c9e265);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-top: 15px; 
-        margin-bottom: 5px; 
-        font-size: 38px; 
         font-weight: 800;
-        line-height: 1.2;
     }
+
+    .metric-value { font-size: 30px; }
+    .highlight-green { font-size: 38px; margin-top: 15px; margin-bottom: 5px; }
 
     /* BLUE GRADIENT for Combined Performance Matrix Heading */
     .matrix-title-blue {
@@ -63,16 +62,8 @@ st.markdown("""
         width: 100%;
     }
 
-    /* Individual Data Item Styling Inside Box (Blue-Black Gradient) */
     .metric-item { flex: 1; }
     .metric-label { color: #555; font-weight: bold; font-size: 14px; margin-bottom: 8px; }
-    .metric-value { 
-        background: -webkit-linear-gradient(#000000, #1e4ae6);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 30px; 
-        font-weight: 800; 
-    }
 
     /* Universal Box for Charts */
     div[data-testid="stPlotlyChart"] {
@@ -125,7 +116,7 @@ if uploaded_files:
         # --- THE MATRIX HEADING (BLUE GRADIENT) ---
         st.markdown('<div class="matrix-title-blue">📊 Combined Performance Matrix</div>', unsafe_allow_html=True)
         
-        # Matrix Box with Blue-Black Values
+        # Matrix Box with GREEN GRADIENT VALUES
         st.markdown(f"""
             <div class="matrix-box">
                 <div class="metric-item">
@@ -151,7 +142,7 @@ if uploaded_files:
             </div>
         """, unsafe_allow_html=True)
 
-        # --- Visual Data Insights (Green Highlights) ---
+        # --- Visual Data Insights (Green Highlight) ---
         st.markdown("---")
         st.markdown('<div class="highlight-green">👁️ Visual Data Insights</div>', unsafe_allow_html=True)
         
