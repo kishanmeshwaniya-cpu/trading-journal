@@ -14,7 +14,7 @@ st.markdown("""
     <style>
     .stApp { background-color: #fcfcfc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-    /* Heading Green Gradient Highlight */
+    /* Heading Green Gradient Highlight (Keep same as before) */
     .major-title {
         text-align: left; 
         color: #89d957; 
@@ -42,8 +42,10 @@ st.markdown("""
     /* Individual Data Item Styling Inside Box */
     .metric-item { flex: 1; }
     .metric-label { color: #555; font-weight: bold; font-size: 14px; margin-bottom: 8px; }
+    
+    /* VALUE STYLING: Updated to Blue-Black Gradient (#000000 & #1e4ae6) */
     .metric-value { 
-        background: -webkit-linear-gradient(#89d957, #c9e265);
+        background: -webkit-linear-gradient(#000000, #1e4ae6);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-size: 30px; 
@@ -99,10 +101,9 @@ if uploaded_files:
         total = w + l
         wr = (w / total * 100) if total > 0 else 0
 
-        # --- THE MATRIX (PROPERLY FIXED INSIDE BOX) ---
+        # --- THE MATRIX (BLUE-BLACK GRADIENT) ---
         st.markdown("<h4 style='color: #89d957; margin-bottom: 15px;'>📊 Combined Performance Matrix</h4>", unsafe_allow_html=True)
         
-        # Using custom HTML for total control over the white box content
         st.markdown(f"""
             <div class="matrix-box">
                 <div class="metric-item">
