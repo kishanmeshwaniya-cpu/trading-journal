@@ -9,16 +9,16 @@ import os
 # --- Page Setup (MUST be first) ---
 st.set_page_config(page_title="Challengevala Trader Journal", page_icon="📈", layout="wide")
 
-# --- MASTER UNIVERSAL DESIGN CSS ---
+# --- MASTER UNIVERSAL DESIGN CSS (GREEN GRADIENT LOCK) ---
 st.markdown("""
     <style>
     /* 1. Page Background & Clean Look */
     .stApp { background-color: #fcfcfc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-    /* 2. Heading Branding */
+    /* 2. Heading Branding - Green Highlighted */
     .major-title {
         text-align: left; 
-        color: #1976d2; 
+        color: #89d957; /* Brand Green */
         margin-top: 15px; 
         margin-bottom: 5px; 
         font-size: 38px; 
@@ -27,8 +27,7 @@ st.markdown("""
     }
 
     /* 3. UNIVERSAL BOX DESIGN (NO BORDER + LOCKED DEPTH) */
-    /* Applied to Metrics, Charts, AI Boxes, and Timeline */
-    div[data-testid="stMetric"], div[data-testid="stPlotlyChart"], .timeline-box, .matrix-container {
+    div[data-testid="stPlotlyChart"], .timeline-box, .matrix-container {
         background-color: #ffffff !important;
         border: none !important;
         border-radius: 24px !important;
@@ -43,11 +42,22 @@ st.markdown("""
         margin-top: 10px;
     }
 
-    /* Metric internal styling */
+    /* Metric internal styling - Green Gradient Values */
+    div[data-testid="stMetric"] {
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important; /* Internal shadow removed to sit clean in white box */
+    }
     div[data-testid="stMetric"] label { color: #555; font-weight: bold; font-size: 14px; margin-bottom: 5px; }
-    div[data-testid="stMetricValue"] > div { color: #1976d2; font-size: 28px !important; font-weight: 700 !important; }
+    div[data-testid="stMetricValue"] > div { 
+        background: -webkit-linear-gradient(#89d957, #c9e265);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 28px !important; 
+        font-weight: 700 !important; 
+    }
 
-    /* 4. Minimalist File Uploader (No border) */
+    /* 4. Minimalist File Uploader */
     div[data-testid="stFileUploader"] {
         background-color: white;
         border-radius: 20px;
@@ -57,8 +67,8 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* 5. Timeline styling */
-    .timeline-title {color: #1976d2; font-weight: bold; font-size: 18px; margin-bottom: 15px;}
+    /* 5. Timeline styling - Green Gradient Focus */
+    .timeline-title {color: #89d957; font-weight: bold; font-size: 18px; margin-bottom: 15px;}
     .trade-row { display: flex; align-items: center; margin-bottom: 12px; min-height: 40px; width: 100%; }
     .trade-time { width: 10%; min-width: 70px; font-weight: bold; font-size: 15px; color: #444; }
     .trade-progress-wrapper { width: 70%; background-color: #f0f2f6; border-radius: 12px; height: 28px; position: relative; overflow: hidden; margin: 0 15px; }
@@ -69,9 +79,9 @@ st.markdown("""
     .modebar { display: none !important; }
     iframe { overflow: hidden !important; border: none !important; }
 
-    /* Brand Buttons */
+    /* Brand Buttons - Green Gradient */
     .stButton>button {
-        background-color: #1976d2 !important;
+        background: linear-gradient(to right, #89d957, #c9e265) !important;
         color: white !important;
         border-radius: 12px !important;
         border: none !important;
@@ -81,14 +91,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER (LOGO THEN HEADING BELOW) ---
+# --- HEADER ---
 logo_path = "logo-full.png"
 if os.path.exists(logo_path):
     with open(logo_path, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode()
         st.markdown(f'<img src="data:image/png;base64,{encoded_string}" style="max-width: 250px; margin-bottom: 10px;">', unsafe_allow_html=True)
 else:
-    st.markdown('<h1 style="color:#1976d2; margin:0;">👑 CT</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 style="color:#89d957; margin:0;">👑 CT</h1>', unsafe_allow_html=True)
 
 st.markdown('<h1 class="major-title">📈 Elite Quant Dashboard & Auto-Evolving AI</h1>', unsafe_allow_html=True)
 st.markdown("---")
@@ -152,10 +162,9 @@ if uploaded_files:
         total_trades = wins + losses 
         win_rate = (wins / total_trades * 100) if total_trades > 0 else 0
 
-        # --- Combined Performance Matrix (Wrapped in Main Box) ---
-        st.markdown("<h4 style='color: #1976d2; margin-bottom: 15px;'>📊 Combined Performance Matrix</h4>", unsafe_allow_html=True)
+        # --- Combined Performance Matrix (Metrics Inside One Main Box) ---
+        st.markdown("<h4 style='color: #89d957; margin-bottom: 15px;'>📊 Combined Performance Matrix</h4>", unsafe_allow_html=True)
         
-        # Open Main Wrapper Box
         st.markdown('<div class="matrix-container">', unsafe_allow_html=True)
         m1, m2, m3, m4, m5 = st.columns(5)
         m1.metric("Total Net P&L", f"₹{total_pnl:,.2f}")
@@ -163,18 +172,18 @@ if uploaded_files:
         m3.metric("Total Trades", total_trades)
         m4.metric("Win Trades", wins)
         m5.metric("Loss Trades", losses)
-        st.markdown('</div>', unsafe_allow_html=True) # Close Main Wrapper Box
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        # --- Visual Data Insights ---
+        # --- Visual Data Insights (Charts with Green Theme) ---
         st.markdown("---")
-        st.markdown("<h4 style='color: #1976d2; margin-bottom: 15px;'>👁️ Visual Data Insights</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: #89d957; margin-bottom: 15px;'>👁️ Visual Data Insights</h4>", unsafe_allow_html=True)
         
         daily = analytics_df.groupby('Date_Clean')['P&L_Clean'].sum().reset_index()
         daily['Equity Curve'] = daily['P&L_Clean'].cumsum()
         
         fig_eq = px.area(daily, x='Date_Clean', y='Equity Curve', title="Total Portfolio Growth",
                          labels={'Date_Clean': 'Trading Date', 'Equity Curve': 'Total Equity (₹)'})
-        fig_eq.update_traces(line_color="#1976d2", fillcolor="rgba(25, 118, 210, 0.1)")
+        fig_eq.update_traces(line_color="#89d957", fillcolor="rgba(137, 217, 87, 0.1)")
         fig_eq.update_layout(margin=dict(l=10, r=10, t=40, b=10), hovermode=False, plot_bgcolor="white", paper_bgcolor="white") 
         st.plotly_chart(fig_eq, use_container_width=True, config={'displayModeBar': False})
         
@@ -183,7 +192,7 @@ if uploaded_files:
             cat_pnl = analytics_df.groupby('Category')['P&L_Clean'].sum().reset_index()
             fig_asset = px.bar(cat_pnl, x='Category', y='P&L_Clean', title="P&L by Category", 
                                labels={'Category': 'Category', 'P&L_Clean': 'Net P&L (₹)'},
-                               color=cat_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
+                               color=cat_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#89d957", False: "#EF553B"})
             fig_asset.update_layout(margin=dict(l=10, r=10, t=40, b=10), showlegend=False, hovermode=False, plot_bgcolor="white", paper_bgcolor="white")
             st.plotly_chart(fig_asset, use_container_width=True, config={'displayModeBar': False})
             
@@ -194,13 +203,13 @@ if uploaded_files:
                 time_pnl['Hour_Label'] = time_pnl['Hour'].apply(lambda x: f"{int(x):02d}:00")
                 fig_time = px.bar(time_pnl, x='Hour_Label', y='P&L_Clean', title="P&L by Hour", 
                                   labels={'Hour_Label': 'Time', 'P&L_Clean': 'Net P&L (₹)'},
-                                  color=time_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
+                                  color=time_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#89d957", False: "#EF553B"})
                 fig_time.update_layout(margin=dict(l=10, r=10, t=40, b=10), showlegend=False, hovermode=False, plot_bgcolor="white", paper_bgcolor="white")
                 st.plotly_chart(fig_time, use_container_width=True, config={'displayModeBar': False})
 
         # --- Deep Time-Based AI Study ---
         st.markdown("---")
-        st.markdown("<h4 style='color: #1976d2; margin-bottom: 15px;'>⏳ Gemini Core: Time Horizon Study</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: #89d957; margin-bottom: 15px;'>⏳ Gemini Core: Time Horizon Study</h4>", unsafe_allow_html=True)
         
         if st.button("Generate Time Horizon Study"):
             if model is not None:
@@ -217,17 +226,16 @@ if uploaded_files:
                         time_stats['Time_Label'] = time_stats['Hour'].apply(lambda x: f"{int(x):02d}:00")
                         ai_feed = time_stats[['Time_Label', 'Net_PnL', 'Win_Rate_%', 'Total_Trades']].to_string(index=False)
                         
-                        prompt = f"Act as Quant Analyst. Deeply analyze this Hourly P&L and Win Rate data. Give 3 short bullet points: Golden Zone, Danger Zone, and key advice. Keep it clean and direct. Data: {ai_feed}"
+                        prompt = f"Act as Quant Analyst. Deeply analyze this Hourly P&L and Win Rate data. Give 3 short bullet points: Golden Zone, Danger Zone, and key advice. Data: {ai_feed}"
                         response = model.generate_content(prompt)
                         
                         st.markdown(f'''<div class="timeline-box"><p class="timeline-title">💡 Gemini Quant Analysis</p><p style='color: #333; font-size: 15px; white-space: pre-wrap;'>{response.text.strip()}</p></div>''', unsafe_allow_html=True)
                         
                         st.markdown('<div class="timeline-box"><p class="timeline-title">📊 Win Rate & Profit Timeline</p>', unsafe_allow_html=True)
                         for _, row in time_stats.iterrows():
-                            pnl_color = "#00CC96" if row['Net_PnL'] >= 0 else "#EF553B"
-                            bar_color = "#1976d2"
-                            if row['Win_Rate_%'] >= 60: bar_color = "#00CC96"
-                            elif row['Win_Rate_%'] <= 40: bar_color = "#EF553B"
+                            pnl_color = "#89d957" if row['Net_PnL'] >= 0 else "#EF553B"
+                            bar_color = "#89d957"
+                            if row['Win_Rate_%'] <= 40: bar_color = "#EF553B"
                             st.markdown(f"""<div class='trade-row'><div class='trade-time'>{row['Time_Label']}</div><div class='trade-progress-wrapper'><div class='trade-progress-bar' style='width: {row['Win_Rate_%']}%; background-color: {bar_color};'><span class='trade-win-text' style='color: white;'>{row['Win_Rate_%']}%</span></div></div><div class='trade-pnl' style='color: {pnl_color};'>₹{row['Net_PnL']:,.0f}</div></div>""", unsafe_allow_html=True)
                         st.markdown('</div>', unsafe_allow_html=True)
                     except Exception as e:
