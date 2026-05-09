@@ -9,16 +9,16 @@ import os
 # --- Page Setup (MUST be first) ---
 st.set_page_config(page_title="Challengevala Trader Journal", page_icon="📈", layout="wide")
 
-# --- MASTER STRICT CSS (Removing Scrollbars & Enhancing Shadows) ---
+# --- MASTER STRICT CSS (Removing Blue Border & Adding Premium Depth) ---
 st.markdown("""
     <style>
     /* 1. Page Background & Clean Look */
     .stApp { background-color: #fcfcfc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-    /* 2. Heading Branding matching Brand Blue */
+    /* 2. Heading Branding */
     .major-title {
         text-align: left; 
-        color: #1976d2; /* Brand Blue */
+        color: #1976d2; 
         margin-top: 15px; 
         margin-bottom: 5px; 
         font-size: 38px; 
@@ -26,15 +26,15 @@ st.markdown("""
         line-height: 1.2;
     }
 
-    /* 3. PREMIUM METRICS LAYOUT with Improved Shadow Depth */
+    /* 3. PREMIUM METRICS LAYOUT (NO BORDER + GEMINI DEPTH) */
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] { padding: 0 10px; }
     div[data-testid="stMetric"] {
         background-color: #ffffff;
         padding: 20px !important;
         border-radius: 20px !important;
-        border: 1px solid #eeeeee !important;
-        /* Improved Shadow: Multi-layered for soft depth feel */
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05), 0 4px 10px rgba(0,0,0,0.02) !important;
+        border: none !important; /* Blue border removed */
+        /* High-end soft depth shadow matching your example */
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06), 0 2px 10px rgba(0,0,0,0.02) !important;
         width: 100% !important;
         display: flex;
         flex-direction: column;
@@ -44,35 +44,34 @@ st.markdown("""
     div[data-testid="stMetric"] label { color: #555; font-weight: bold; font-size: 14px; margin-bottom: 5px; }
     div[data-testid="stMetricValue"] > div { color: #1976d2; font-size: 28px !important; font-weight: 700 !important; }
 
-    /* 4. FIXING VERTICAL SCROLLBARS ON CHARTS */
-    /* Targeting the plotly container to remove overflow */
+    /* 4. CHARTS (NO BORDER + PREMIUM DEPTH) */
     div[data-testid="stPlotlyChart"] {
         background-color: #ffffff;
         padding: 20px;
         border-radius: 20px;
-        border: 1px solid #eeeeee;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05) !important;
+        border: none !important; /* Border removed */
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06), 0 2px 10px rgba(0,0,0,0.02) !important;
         margin-bottom: 20px;
-        overflow: hidden !important; /* Forces scrollbars to disappear */
+        overflow: hidden !important; 
     }
     iframe { overflow: hidden !important; border: none !important; }
 
-    /* 5. Minimalist File Uploader Highlighted with Brand Blue */
+    /* 5. Minimalist File Uploader (Cleaned Up) */
     div[data-testid="stFileUploader"] {
         background-color: white;
         border-radius: 15px;
         padding: 10px;
-        border: 2px solid #1976d2; /* Highlight with Brand Color */
+        border: 1px solid #eee; /* Light neutral border instead of blue */
         margin-bottom: 20px;
     }
 
-    /* 6. TIMELINE & AI BOXES with Depth */
+    /* 6. TIMELINE & AI BOXES (NO BORDER + PREMIUM DEPTH) */
     .timeline-box {
         background-color: #ffffff;
         padding: 25px;
         border-radius: 20px;
-        border: 1px solid #eeeeee;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        border: none !important; /* Border removed */
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06), 0 2px 10px rgba(0,0,0,0.02);
         margin-bottom: 20px;
         width: 100%;
         overflow: hidden;
