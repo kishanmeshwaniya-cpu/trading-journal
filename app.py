@@ -32,17 +32,14 @@ except Exception as e:
 # --- Helper Function: Smart Categorization ---
 def categorize_asset(name):
     name = str(name).upper()
-    # Delta Crypto Options
     if name.startswith('C-') or name.startswith('P-'):
         if 'BTC' in name: return 'BTC Options'
         if 'ETH' in name: return 'ETH Options'
         return 'Crypto Options'
-    # Dhan NSE Options
     if ' CE' in name or ' PE' in name or name.endswith('CE') or name.endswith('PE'):
         if 'BANKNIFTY' in name or 'BANK' in name: return 'BankNifty Options'
         if 'NIFTY' in name: return 'Nifty Options'
         return 'NSE Options'
-    # Base Assets / Futures
     if 'BTC' in name: return 'BTC'
     if 'ETH' in name: return 'ETH'
     if 'NIFTY' in name: return 'Nifty 50'
@@ -144,7 +141,6 @@ if uploaded_files:
                                 Wins=('P&L_Clean', lambda x: (x > 0).sum())
                             ).reset_index()
                             
-                            # Sort by hour to show morning to evening properly
                             time_stats = time_stats.sort_values('Hour')
                             time_stats['Win_Rate_%'] = (time_stats['Wins'] / time_stats['Total_Trades'] * 100).round(1)
                             time_stats['Time_Label'] = time_stats['Hour'].apply(lambda x: f"{int(x):02d}:00")
@@ -156,7 +152,6 @@ if uploaded_files:
                             You have their Hourly Net Profit, Win Rate %, and Total Trades.
                             
                             Find the absolute Best Time (Golden Zone) and absolute Worst Time (Danger Zone) based on a COMBINATION of Profitability and Win Rate.
-                            (e.g., A time with huge profit but 20% win rate is lucky, not a Golden Zone. Look for consistency).
                             
                             CRITICAL: RESPOND ONLY WITH RAW JSON. NO MARKDOWN. ALL TEXT IN HINGLISH.
                             Format:
@@ -190,10 +185,9 @@ if uploaded_files:
                             raw_json = response.text.replace("`"*3 + "json", "").replace("`"*3, "").strip()
                             ai_data = json.loads(raw_json)
                             
-                            # 1. AI Summary
                             st.success(f"🎯 **Time Horizon Edge:** {ai_data['summary']}")
                             
-                            # 2. BEAUTIFUL HTML PROGRESS BAR UI (Replaced confusing chart)
+                            # PROGRESS BAR UI FIX (Removed formatting spaces to stop Markdown leakage)
                             st.markdown("<h4 style='margin-top: 20px; margin-bottom: 20px;'>📊 Win Rate & Profit Timeline</h4>", unsafe_allow_html=True)
                             
                             progress_html = "<div style='background: white; padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; margin-bottom: 30px;'>"
@@ -203,34 +197,22 @@ if uploaded_files:
                                 win_rate = row['Win_Rate_%']
                                 pnl = row['Net_PnL']
                                 
-                                # Dynamic Colors for P&L and Bars
                                 pnl_color = "#00CC96" if pnl >= 0 else "#d32f2f"
                                 pnl_sign = "+" if pnl >= 0 else ""
                                 
-                                bar_color = "#1976d2" # Default Blue
-                                if win_rate >= 60: bar_color = "#00CC96" # Green for great win rate
-                                elif win_rate <= 40: bar_color = "#ef5350" # Red for poor win rate
+                                bar_color = "#1976d2"
+                                if win_rate >= 60: bar_color = "#00CC96"
+                                elif win_rate <= 40: bar_color = "#ef5350"
                                 
                                 text_color = "white" if win_rate > 15 else "#333"
 
-                                progress_html += f"""
-                                <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                                    <div style="width: 10%; font-weight: bold; font-size: 16px; color: #444;">{time_label}</div>
-                                    <div style="width: 65%; background-color: #f0f2f6; border-radius: 8px; height: 26px; position: relative; overflow: hidden; margin: 0 15px;">
-                                        <div style="width: {win_rate}%; background-color: {bar_color}; height: 100%; border-radius: 8px; display: flex; align-items: center; padding-left: 10px;">
-                                            <span style="color: {text_color}; font-size: 13px; font-weight: bold; white-space: nowrap;">{win_rate}% Win Rate</span>
-                                        </div>
-                                    </div>
-                                    <div style="width: 20%; text-align: right; color: {pnl_color}; font-weight: bold; font-size: 16px;">
-                                        {pnl_sign}₹{pnl:,.0f}
-                                    </div>
-                                </div>
-                                """
+                                # Single line string to prevent Streamlit from making it a markdown code block
+                                progress_html += f"<div style='display: flex; align-items: center; margin-bottom: 15px;'><div style='width: 10%; font-weight: bold; font-size: 16px; color: #444;'>{time_label}</div><div style='width: 65%; background-color: #f0f2f6; border-radius: 8px; height: 26px; position: relative; overflow: hidden; margin: 0 15px;'><div style='width: {win_rate}%; background-color: {bar_color}; height: 100%; border-radius: 8px; display: flex; align-items: center; padding-left: 10px;'><span style='color: {text_color}; font-size: 13px; font-weight: bold; white-space: nowrap;'>{win_rate}% Win Rate</span></div></div><div style='width: 20%; text-align: right; color: {pnl_color}; font-weight: bold; font-size: 16px;'>{pnl_sign}₹{pnl:,.0f}</div></div>"
                             
                             progress_html += "</div>"
                             st.markdown(progress_html, unsafe_allow_html=True)
 
-                            # 3. Action Cards (Danger vs Golden Zone)
+                            # Action Cards UI FIX
                             st.markdown("### ⏳ Ultimate Time-Based Strategy")
                             cols = st.columns(len(ai_data['insights']))
                             
@@ -243,32 +225,9 @@ if uploaded_files:
                                     bg_color = "#e8f5e9"
                                     
                                 with cols[i]:
-                                    st.markdown(f'''
-                                    <div style="background-color: {bg_color}; padding: 20px; border-radius: 12px; 
-                                                border: 1px solid #e0e0e0; border-top: 5px solid {border_color}; 
-                                                box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 250px; 
-                                                display: flex; flex-direction: column;">
-                                        <h4 style="color: {border_color}; margin-top: 0; margin-bottom: 5px; font-size: 18px;">
-                                            {item['Zone_Name']}
-                                        </h4>
-                                        <h5 style="color: #444; margin-top: 0; margin-bottom: 15px; font-size: 15px; border-bottom: 1px solid #ccc; padding-bottom: 8px;">
-                                            ⏰ <b>Time Window:</b> {item['Timeframe']}
-                                        </h5>
-                                        <div style="flex-grow: 1;">
-                                            <p style="color: #555555; font-size: 14px; margin: 8px 0; line-height: 1.4;">
-                                                <span style="color: #d32f2f; font-weight: bold;">❌ Avoid:</span> {item['Avoid']}
-                                            </p>
-                                            <p style="color: #555555; font-size: 14px; margin: 8px 0; line-height: 1.4;">
-                                                <span style="color: #1976d2; font-weight: bold;">🛠️ Focus:</span> {item['Improve']}
-                                            </p>
-                                        </div>
-                                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #dcdcdc;">
-                                            <p style="color: #2e7d32; font-size: 14px; margin: 0; font-weight: 500;">
-                                                ✅ Benefit: {item['Benefit']}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    ''', unsafe_allow_html=True)
+                                    # Formatted as a single block to avoid Markdown parsing bugs
+                                    card_html = f"""<div style="background-color: {bg_color}; padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; border-top: 5px solid {border_color}; box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 250px; display: flex; flex-direction: column;"><h4 style="color: {border_color}; margin-top: 0; margin-bottom: 5px; font-size: 18px;">{item['Zone_Name']}</h4><h5 style="color: #444; margin-top: 0; margin-bottom: 15px; font-size: 15px; border-bottom: 1px solid #ccc; padding-bottom: 8px;">⏰ <b>Time Window:</b> {item['Timeframe']}</h5><div style="flex-grow: 1;"><p style="color: #555555; font-size: 14px; margin: 8px 0; line-height: 1.4;"><span style="color: #d32f2f; font-weight: bold;">❌ Avoid:</span> {item['Avoid']}</p><p style="color: #555555; font-size: 14px; margin: 8px 0; line-height: 1.4;"><span style="color: #1976d2; font-weight: bold;">🛠️ Focus:</span> {item['Improve']}</p></div><div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #dcdcdc;"><p style="color: #2e7d32; font-size: 14px; margin: 0; font-weight: 500;">✅ Benefit: {item['Benefit']}</p></div></div>"""
+                                    st.markdown(card_html, unsafe_allow_html=True)
                                     
                     except Exception as e:
                         st.error(f"AI Parse Error: {e}")
