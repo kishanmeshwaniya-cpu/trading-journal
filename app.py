@@ -26,18 +26,18 @@ st.markdown("""
     }
 
     /* GREEN GRADIENT for Output & Highlighted Text */
-    .highlight-green, .metric-value {
+    .highlight-green {
         text-align: left; 
         background: -webkit-linear-gradient(#89d957, #c9e265);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-weight: 800;
+        font-size: 38px; 
+        margin-top: 15px; 
+        margin-bottom: 5px;
     }
 
-    .metric-value { font-size: 30px; }
-    .highlight-green { font-size: 38px; margin-top: 15px; margin-bottom: 5px; }
-
-    /* BLUE GRADIENT for Combined Performance Matrix Heading */
+    /* BLUE GRADIENT for Matrix Heading */
     .matrix-title-blue {
         background: -webkit-linear-gradient(#000000, #1e4ae6);
         -webkit-background-clip: text;
@@ -48,7 +48,7 @@ st.markdown("""
         display: inline-block;
     }
 
-    /* THE WHITE BOX DESIGN */
+    /* THE WHITE BOX DESIGN with Proper Alignment */
     .matrix-box {
         background-color: #ffffff !important;
         border-radius: 24px !important;
@@ -56,14 +56,35 @@ st.markdown("""
         padding: 40px 20px !important;
         margin-bottom: 30px !important;
         display: flex;
-        justify-content: space-around;
+        justify-content: space-around; /* Distributes items equally */
         align-items: center;
         text-align: center;
         width: 100%;
     }
 
-    .metric-item { flex: 1; }
-    .metric-label { color: #555; font-weight: bold; font-size: 14px; margin-bottom: 8px; }
+    /* Individual Data Item (Proper Columnar Layout) */
+    .metric-item {
+        display: flex;
+        flex-direction: column; /* Vertical alignment (Label above Value) */
+        align-items: center;
+        flex: 1;
+    }
+
+    .metric-label { 
+        color: #555; 
+        font-weight: bold; 
+        font-size: 14px; 
+        margin-bottom: 10px; /* Space between label and value */
+    }
+
+    .metric-value { 
+        background: -webkit-linear-gradient(#89d957, #c9e265);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 32px; 
+        font-weight: 800;
+        margin: 0;
+    }
 
     /* Universal Box for Charts */
     div[data-testid="stPlotlyChart"] {
@@ -113,10 +134,10 @@ if uploaded_files:
         total = w + l
         wr = (w / total * 100) if total > 0 else 0
 
-        # --- THE MATRIX HEADING (BLUE GRADIENT) ---
+        # --- THE MATRIX HEADING ---
         st.markdown('<div class="matrix-title-blue">📊 Combined Performance Matrix</div>', unsafe_allow_html=True)
         
-        # Matrix Box with GREEN GRADIENT VALUES
+        # Proper Vertical Alignment using metric-item structure
         st.markdown(f"""
             <div class="matrix-box">
                 <div class="metric-item">
@@ -142,7 +163,7 @@ if uploaded_files:
             </div>
         """, unsafe_allow_html=True)
 
-        # --- Visual Data Insights (Green Highlight) ---
+        # --- Visual Data Insights ---
         st.markdown("---")
         st.markdown('<div class="highlight-green">👁️ Visual Data Insights</div>', unsafe_allow_html=True)
         
