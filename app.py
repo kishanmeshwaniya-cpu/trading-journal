@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import google.generativeai as genai
 import json
 
@@ -81,7 +80,6 @@ if uploaded_files:
     # Master Data
     if all_processed_data:
         analytics_df = pd.concat(all_processed_data, ignore_index=True)
-        # Apply new Categorization
         analytics_df['Category'] = analytics_df['Asset'].apply(categorize_asset)
         
         total_pnl = analytics_df['P&L_Clean'].sum()
@@ -111,7 +109,6 @@ if uploaded_files:
         col_g1, col_g2 = st.columns(2)
         
         with col_g1:
-            # CHANGED: Now grouping by Category instead of raw Asset name
             category_pnl = analytics_df.groupby('Category')['P&L_Clean'].sum().reset_index()
             fig_asset = px.bar(category_pnl, x='Category', y='P&L_Clean', title="🎯 P&L by Instrument Category", color=category_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
             fig_asset.update_layout(showlegend=False, hovermode=False, xaxis_tickangle=0)
@@ -139,7 +136,6 @@ if uploaded_files:
                         if analytics_df['Trade_Time'].isna().all():
                             st.warning("Aapke data mein Time format missing hai, time analysis run nahi ho sakta.")
                         else:
-                            # 1. DEEP TIME MATHS (Calculating Win Rate & Trades per Hour)
                             analytics_df['Hour'] = analytics_df['Trade_Time'].dt.hour
                             
                             time_stats = analytics_df.groupby('Hour').agg(
@@ -148,6 +144,8 @@ if uploaded_files:
                                 Wins=('P&L_Clean', lambda x: (x > 0).sum())
                             ).reset_index()
                             
+                            # Sort by hour to show morning to evening properly
+                            time_stats = time_stats.sort_values('Hour')
                             time_stats['Win_Rate_%'] = (time_stats['Wins'] / time_stats['Total_Trades'] * 100).round(1)
                             time_stats['Time_Label'] = time_stats['Hour'].apply(lambda x: f"{int(x):02d}:00")
                             
@@ -168,7 +166,7 @@ if uploaded_files:
                                         "Zone_Type": "Danger",
                                         "Zone_Name": "🔴 Danger Zone (Avoid Trading)", 
                                         "Timeframe": "e.g. 14:00 to 16:00", 
-                                        "Avoid": "Exactly why this time is bad (mention low win rate or big losses)...", 
+                                        "Avoid": "Exactly why this time is bad...", 
                                         "Improve": "What to do instead during this time...",
                                         "Benefit": "Capital protection"
                                     }},
@@ -177,7 +175,7 @@ if uploaded_files:
                                         "Zone_Name": "🟢 Golden Zone (Focus Here)", 
                                         "Timeframe": "e.g. 09:00 to 11:00", 
                                         "Avoid": "Dont miss setups here...", 
-                                        "Improve": "Deploy maximum capital or best setups here because of high win rate...",
+                                        "Improve": "Deploy maximum capital or best setups here...",
                                         "Benefit": "Maximum edge utilization"
                                     }}
                                 ],
@@ -189,42 +187,48 @@ if uploaded_files:
                             """
                             response = model.generate_content(prompt)
                             
-                            # Safe JSON Parsing
                             raw_json = response.text.replace("`"*3 + "json", "").replace("`"*3, "").strip()
                             ai_data = json.loads(raw_json)
                             
                             # 1. AI Summary
                             st.success(f"🎯 **Time Horizon Edge:** {ai_data['summary']}")
                             
-                            # 2. Dual-Axis Line Chart (P&L and Win Rate combined)
-                            fig_combo = go.Figure()
+                            # 2. BEAUTIFUL HTML PROGRESS BAR UI (Replaced confusing chart)
+                            st.markdown("<h4 style='margin-top: 20px; margin-bottom: 20px;'>📊 Win Rate & Profit Timeline</h4>", unsafe_allow_html=True)
                             
-                            # Add P&L Line
-                            marker_colors = ['#00CC96' if val >= 0 else '#EF553B' for val in time_stats['Net_PnL']]
-                            fig_combo.add_trace(go.Scatter(
-                                x=time_stats['Time_Label'], y=time_stats['Net_PnL'],
-                                mode='lines+markers', name='Net P&L',
-                                line=dict(color='#1976d2', width=3),
-                                marker=dict(size=12, color=marker_colors, line=dict(width=2, color='white')),
-                                yaxis='y1'
-                            ))
+                            progress_html = "<div style='background: white; padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; margin-bottom: 30px;'>"
                             
-                            # Add Win Rate Bar (Background)
-                            fig_combo.add_trace(go.Bar(
-                                x=time_stats['Time_Label'], y=time_stats['Win_Rate_%'],
-                                name='Win Rate %', opacity=0.3, marker_color='#9c27b0',
-                                yaxis='y2'
-                            ))
+                            for _, row in time_stats.iterrows():
+                                time_label = row['Time_Label']
+                                win_rate = row['Win_Rate_%']
+                                pnl = row['Net_PnL']
+                                
+                                # Dynamic Colors for P&L and Bars
+                                pnl_color = "#00CC96" if pnl >= 0 else "#d32f2f"
+                                pnl_sign = "+" if pnl >= 0 else ""
+                                
+                                bar_color = "#1976d2" # Default Blue
+                                if win_rate >= 60: bar_color = "#00CC96" # Green for great win rate
+                                elif win_rate <= 40: bar_color = "#ef5350" # Red for poor win rate
+                                
+                                text_color = "white" if win_rate > 15 else "#333"
+
+                                progress_html += f"""
+                                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                    <div style="width: 10%; font-weight: bold; font-size: 16px; color: #444;">{time_label}</div>
+                                    <div style="width: 65%; background-color: #f0f2f6; border-radius: 8px; height: 26px; position: relative; overflow: hidden; margin: 0 15px;">
+                                        <div style="width: {win_rate}%; background-color: {bar_color}; height: 100%; border-radius: 8px; display: flex; align-items: center; padding-left: 10px;">
+                                            <span style="color: {text_color}; font-size: 13px; font-weight: bold; white-space: nowrap;">{win_rate}% Win Rate</span>
+                                        </div>
+                                    </div>
+                                    <div style="width: 20%; text-align: right; color: {pnl_color}; font-weight: bold; font-size: 16px;">
+                                        {pnl_sign}₹{pnl:,.0f}
+                                    </div>
+                                </div>
+                                """
                             
-                            fig_combo.update_layout(
-                                title="📈 Deep Time Study: Profitability vs Win Rate",
-                                yaxis=dict(title="Net P&L (₹)"),
-                                yaxis2=dict(title="Win Rate (%)", overlaying='y', side='right', range=[0, 100]),
-                                showlegend=True, hovermode='x unified'
-                            )
-                            fig_combo.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.8)
-                            
-                            st.plotly_chart(fig_combo, use_container_width=True)
+                            progress_html += "</div>"
+                            st.markdown(progress_html, unsafe_allow_html=True)
 
                             # 3. Action Cards (Danger vs Golden Zone)
                             st.markdown("### ⏳ Ultimate Time-Based Strategy")
