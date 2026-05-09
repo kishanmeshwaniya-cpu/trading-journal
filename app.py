@@ -11,7 +11,6 @@ st.markdown("""
     <style>
     .stMetric {background-color: #f0f2f6; padding: 15px; border-radius: 10px;}
     .stExpander {border: 1px solid #e6e9ef; border-radius: 10px;}
-    /* Ensure markdown columns align well */
     div[data-testid="column"] {display: flex; flex-direction: column;}
     </style>
 """, unsafe_allow_html=True)
@@ -106,91 +105,117 @@ if uploaded_files:
                 st.plotly_chart(fig_time, use_container_width=True)
 
         # ---------------------------------------------
-        # VISUAL AI ENGINE (PRO UI VERSION)
+        # TIME-BASED AI ENGINE (PRO UI VERSION)
         # ---------------------------------------------
         st.markdown("---")
-        st.subheader("🧠 Gemini Core: Advanced Pattern Diagnostics")
-        if st.button("Generate Visual Diagnostic"):
+        st.subheader("⏱️ Gemini Core: Time-Based Edge Analysis")
+        
+        if st.button("Generate Time Analysis"):
             if model is not None:
-                with st.spinner("Analyzing data and generating actionable insights..."):
+                with st.spinner("Analyzing full historical data to find your most profitable hours..."):
                     try:
-                        ai_feed = analytics_df[['Date_Clean', 'Trade_Time', 'Asset', 'P&L_Clean']].tail(50).to_string(index=False)
-                        
-                        prompt = f"""
-                        Analyze this trading data. Identify 3 critical mistakes causing losses.
-                        For each mistake, provide:
-                        1. Avoid: What exact action to stop.
-                        2. Improve: What exact action to start doing instead.
-                        3. Benefit: The positive result of this change.
-                        
-                        CRITICAL: RESPOND ONLY WITH RAW JSON. NO MARKDOWN. ALL TEXT IN HINGLISH.
-                        Format:
-                        {{
-                            "chart_data": [
-                                {{
-                                    "Mistake": "Short Title", 
-                                    "Impact": 85, 
-                                    "Avoid": "Kya avoid karna hai", 
-                                    "Improve": "Kaise theek karna hai (improvement step)",
-                                    "Benefit": "Fayda kya hoga"
-                                }}
-                            ],
-                            "summary": "One line overall conclusion."
-                        }}
-                        
-                        Data:
-                        {ai_feed}
-                        """
-                        response = model.generate_content(prompt)
-                        
-                        # Safe JSON Parsing
-                        raw_json = response.text.replace("`"*3 + "json", "").replace("`"*3, "").strip()
-                        ai_data = json.loads(raw_json)
-                        
-                        # 1. Short AI Summary
-                        st.info(f"💡 **AI Overview:** {ai_data['summary']}")
-                        
-                        # 2. Dual Charts
-                        ai_df = pd.DataFrame(ai_data['chart_data'])
-                        c_pie, c_bar = st.columns(2)
-                        with c_pie:
-                            fig_pie = px.pie(ai_df, values='Impact', names='Mistake', title="🔥 Mistake Impact Breakdown", hole=0.4, color_discrete_sequence=px.colors.sequential.Reds_r)
-                            st.plotly_chart(fig_pie, use_container_width=True)
-                        with c_bar:
-                            fig_bar = px.bar(ai_df, x='Mistake', y='Impact', title="📉 Severity Level", color='Impact', color_continuous_scale='Reds')
-                            fig_bar.update_layout(coloraxis_showscale=False)
-                            st.plotly_chart(fig_bar, use_container_width=True)
+                        if analytics_df['Trade_Time'].isna().all():
+                            st.warning("Aapke data mein Time format missing hai, time analysis run nahi ho sakta.")
+                        else:
+                            # 1. Pre-calculate Hourly Data to prevent AI math errors
+                            analytics_df['Hour'] = analytics_df['Trade_Time'].dt.hour
+                            time_ai_df = analytics_df.groupby('Hour')['P&L_Clean'].sum().reset_index()
+                            time_ai_df['Time_Label'] = time_ai_df['Hour'].apply(lambda x: f"{int(x):02d}:00")
+                            
+                            ai_feed = time_ai_df[['Time_Label', 'P&L_Clean']].to_string(index=False)
+                            
+                            prompt = f"""
+                            You are a strict Quant Trading Coach. Analyze this hourly Profit/Loss data covering all trading days.
+                            Identify the 'Best Time' (Golden Zone) and the 'Worst Time' (Danger Zone) to trade.
+                            
+                            CRITICAL: RESPOND ONLY WITH RAW JSON. NO MARKDOWN. ALL TEXT IN HINGLISH.
+                            Format:
+                            {{
+                                "insights": [
+                                    {{
+                                        "Zone_Type": "Danger",
+                                        "Zone_Name": "🔴 Danger Zone (Worst Time)", 
+                                        "Timeframe": "e.g. 14:00 to 16:00", 
+                                        "Avoid": "Kya exactly avoid karna hai is time par...", 
+                                        "Improve": "Is time pe system band karna chahiye ya size kam karna chahiye...",
+                                        "Benefit": "Bade losses se bachaav"
+                                    }},
+                                    {{
+                                        "Zone_Type": "Golden",
+                                        "Zone_Name": "🟢 Golden Zone (Best Time)", 
+                                        "Timeframe": "e.g. 09:00 to 11:00", 
+                                        "Avoid": "Jaldi fear mein exit nahi karna hai...", 
+                                        "Improve": "High probability setups par pura focus rakhna...",
+                                        "Benefit": "Max profit capture hoga"
+                                    }}
+                                ],
+                                "summary": "One clear line on when they should strictly trade and when to avoid."
+                            }}
+                            
+                            Hourly P&L Data:
+                            {ai_feed}
+                            """
+                            response = model.generate_content(prompt)
+                            
+                            # Safe JSON Parsing
+                            raw_json = response.text.replace("`"*3 + "json", "").replace("`"*3, "").strip()
+                            ai_data = json.loads(raw_json)
+                            
+                            # 1. AI Summary
+                            st.info(f"💡 **AI Timing Insight:** {ai_data['summary']}")
+                            
+                            # 2. Beautiful Line Chart (Time vs Profit)
+                            fig_line = px.line(time_ai_df, x='Time_Label', y='P&L_Clean', markers=True, 
+                                               title="📈 Hourly Profit & Loss Trend (All Days)")
+                            fig_line.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.8)
+                            
+                            # Color markers based on profit/loss
+                            marker_colors = ['#00CC96' if val >= 0 else '#EF553B' for val in time_ai_df['P&L_Clean']]
+                            fig_line.update_traces(line_color="#1976d2", line_width=3, 
+                                                   marker=dict(size=12, color=marker_colors, line=dict(width=2, color='white')))
+                            
+                            st.plotly_chart(fig_line, use_container_width=True)
 
-                        # 3. Actionable Guidance Cards (Beautiful Modern UI)
-                        st.markdown("### 🛡️ Action Plan (Avoid -> Improve -> Win)")
-                        cols = st.columns(len(ai_data['chart_data']))
-                        
-                        for i, item in enumerate(ai_data['chart_data']):
-                            with cols[i]:
-                                st.markdown(f'''
-                                <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; 
-                                            border: 1px solid #e0e0e0; border-top: 5px solid #d32f2f; 
-                                            box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 280px; 
-                                            display: flex; flex-direction: column;">
-                                    <h4 style="color: #333333; margin-top: 0; margin-bottom: 15px; font-size: 16px;">
-                                        🚨 {item['Mistake']}
-                                    </h4>
-                                    <div style="flex-grow: 1;">
-                                        <p style="color: #555555; font-size: 14px; margin: 8px 0; line-height: 1.4;">
-                                            <span style="color: #d32f2f; font-weight: bold;">❌ Avoid:</span> {item['Avoid']}
-                                        </p>
-                                        <p style="color: #555555; font-size: 14px; margin: 8px 0; line-height: 1.4;">
-                                            <span style="color: #1976d2; font-weight: bold;">🛠️ Improve:</span> {item['Improve']}
-                                        </p>
+                            # 3. Action Cards (Danger vs Golden Zone)
+                            st.markdown("### ⏳ Time-Based Action Plan")
+                            cols = st.columns(len(ai_data['insights']))
+                            
+                            for i, item in enumerate(ai_data['insights']):
+                                if item.get('Zone_Type') == 'Danger':
+                                    border_color = "#d32f2f"
+                                    bg_color = "#ffebee"
+                                else:
+                                    border_color = "#388e3c"
+                                    bg_color = "#e8f5e9"
+                                    
+                                with cols[i]:
+                                    st.markdown(f'''
+                                    <div style="background-color: {bg_color}; padding: 20px; border-radius: 12px; 
+                                                border: 1px solid #e0e0e0; border-top: 5px solid {border_color}; 
+                                                box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 250px; 
+                                                display: flex; flex-direction: column;">
+                                        <h4 style="color: {border_color}; margin-top: 0; margin-bottom: 5px; font-size: 18px;">
+                                            {item['Zone_Name']}
+                                        </h4>
+                                        <h5 style="color: #444; margin-top: 0; margin-bottom: 15px; font-size: 15px; border-bottom: 1px solid #ccc; padding-bottom: 8px;">
+                                            ⏰ <b>Time Window:</b> {item['Timeframe']}
+                                        </h5>
+                                        <div style="flex-grow: 1;">
+                                            <p style="color: #555555; font-size: 14px; margin: 8px 0; line-height: 1.4;">
+                                                <span style="color: #d32f2f; font-weight: bold;">❌ Avoid:</span> {item['Avoid']}
+                                            </p>
+                                            <p style="color: #555555; font-size: 14px; margin: 8px 0; line-height: 1.4;">
+                                                <span style="color: #1976d2; font-weight: bold;">🛠️ Improve:</span> {item['Improve']}
+                                            </p>
+                                        </div>
+                                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #dcdcdc;">
+                                            <p style="color: #2e7d32; font-size: 14px; margin: 0; font-weight: 500;">
+                                                ✅ Benefit: {item['Benefit']}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eeeeee;">
-                                        <p style="color: #2e7d32; font-size: 14px; margin: 0; font-weight: 500;">
-                                            ✅ Benefit: {item['Benefit']}
-                                        </p>
-                                    </div>
-                                </div>
-                                ''', unsafe_allow_html=True)
-                                
+                                    ''', unsafe_allow_html=True)
+                                    
                     except Exception as e:
                         st.error(f"AI Parse Error: {e}")
     else:
