@@ -14,14 +14,25 @@ st.markdown("""
     <style>
     .stApp { background-color: #fcfcfc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-    /* Fix Top Padding */
-    .block-container { padding-top: 2rem !important; }
+    /* Fix Top Padding & Logo Container */
+    .block-container { padding-top: 1.5rem !important; }
+    
+    .logo-container {
+        text-align: left;
+        margin-bottom: 0px;
+    }
+    
+    .logo-img {
+        max-width: 280px;
+        height: auto;
+        object-fit: contain; /* Ensures logo doesn't cut */
+    }
 
     /* Heading Black */
     .major-title {
         text-align: left; 
         color: #000000;
-        margin-top: 10px; 
+        margin-top: 5px; 
         margin-bottom: 20px; 
         font-size: 38px; 
         font-weight: 800;
@@ -52,7 +63,7 @@ st.markdown("""
         display: inline-block;
     }
 
-    /* THE WHITE BOX DESIGN with Proper Alignment */
+    /* THE WHITE BOX DESIGN */
     .matrix-box {
         background-color: #ffffff !important;
         border-radius: 24px !important;
@@ -66,7 +77,6 @@ st.markdown("""
         width: 100%;
     }
 
-    /* Individual Data Item */
     .metric-item {
         display: flex;
         flex-direction: column; 
@@ -90,7 +100,6 @@ st.markdown("""
         margin: 0;
     }
 
-    /* Universal Box for Charts */
     div[data-testid="stPlotlyChart"] {
         background-color: #ffffff !important;
         border-radius: 24px !important;
@@ -99,20 +108,21 @@ st.markdown("""
         margin-bottom: 30px !important;
     }
 
-    /* File Uploader Spacing */
-    div[data-testid="stFileUploader"] { margin-bottom: 25px; }
-
     .modebar { display: none !important; }
     hr { margin: 2em 0 !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER ---
+# --- HEADER (FIXED LOGO RENDER) ---
 logo_path = "logo-full.png"
 if os.path.exists(logo_path):
     with open(logo_path, "rb") as f:
         data = base64.b64encode(f.read()).decode()
-        st.markdown(f'<img src="data:image/png;base64,{data}" style="max-width: 250px;">', unsafe_allow_html=True)
+        st.markdown(f'''
+            <div class="logo-container">
+                <img src="data:image/png;base64,{data}" class="logo-img">
+            </div>
+        ''', unsafe_allow_html=True)
 
 st.markdown('<h1 class="major-title">📈 Elite Quant Dashboard & Auto-Evolving AI</h1>', unsafe_allow_html=True)
 st.markdown("---")
