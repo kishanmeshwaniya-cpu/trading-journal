@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import google.generativeai as genai
 import json
 
@@ -28,6 +29,25 @@ try:
         st.sidebar.warning("⚠️ API Key Missing! Settings > Secrets mein daalein.")
 except Exception as e:
     pass
+
+# --- Helper Function: Smart Categorization ---
+def categorize_asset(name):
+    name = str(name).upper()
+    # Delta Crypto Options
+    if name.startswith('C-') or name.startswith('P-'):
+        if 'BTC' in name: return 'BTC Options'
+        if 'ETH' in name: return 'ETH Options'
+        return 'Crypto Options'
+    # Dhan NSE Options
+    if ' CE' in name or ' PE' in name or name.endswith('CE') or name.endswith('PE'):
+        if 'BANKNIFTY' in name or 'BANK' in name: return 'BankNifty Options'
+        if 'NIFTY' in name: return 'Nifty Options'
+        return 'NSE Options'
+    # Base Assets / Futures
+    if 'BTC' in name: return 'BTC'
+    if 'ETH' in name: return 'ETH'
+    if 'NIFTY' in name: return 'Nifty 50'
+    return 'Other'
 
 # --- File Uploader ---
 uploaded_files = st.file_uploader("📥 Upload Dhan & Delta CSVs together", accept_multiple_files=True, type=['csv'])
@@ -61,7 +81,8 @@ if uploaded_files:
     # Master Data
     if all_processed_data:
         analytics_df = pd.concat(all_processed_data, ignore_index=True)
-        analytics_df['Asset_Display'] = analytics_df['Asset'].astype(str).apply(lambda x: x[:15] + ".." if len(x) > 15 else x)
+        # Apply new Categorization
+        analytics_df['Category'] = analytics_df['Asset'].apply(categorize_asset)
         
         total_pnl = analytics_df['P&L_Clean'].sum()
         wins = len(analytics_df[analytics_df['P&L_Clean'] > 0])
@@ -90,9 +111,10 @@ if uploaded_files:
         col_g1, col_g2 = st.columns(2)
         
         with col_g1:
-            asset_pnl = analytics_df.groupby('Asset_Display')['P&L_Clean'].sum().reset_index()
-            fig_asset = px.bar(asset_pnl, x='Asset_Display', y='P&L_Clean', title="🎯 P&L by Instrument", color=asset_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
-            fig_asset.update_layout(showlegend=False, hovermode=False, xaxis_tickangle=-45)
+            # CHANGED: Now grouping by Category instead of raw Asset name
+            category_pnl = analytics_df.groupby('Category')['P&L_Clean'].sum().reset_index()
+            fig_asset = px.bar(category_pnl, x='Category', y='P&L_Clean', title="🎯 P&L by Instrument Category", color=category_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
+            fig_asset.update_layout(showlegend=False, hovermode=False, xaxis_tickangle=0)
             st.plotly_chart(fig_asset, use_container_width=True)
             
         with col_g2:
@@ -105,28 +127,38 @@ if uploaded_files:
                 st.plotly_chart(fig_time, use_container_width=True)
 
         # ---------------------------------------------
-        # TIME-BASED AI ENGINE (PRO UI VERSION)
+        # DEEP TIME-BASED AI ENGINE (PRO UI VERSION)
         # ---------------------------------------------
         st.markdown("---")
-        st.subheader("⏱️ Gemini Core: Time-Based Edge Analysis")
+        st.subheader("⏳ Deep Time Horizon Study: Finding Your Ultimate Edge")
         
-        if st.button("Generate Time Analysis"):
+        if st.button("Generate Time Horizon Study"):
             if model is not None:
-                with st.spinner("Analyzing full historical data to find your most profitable hours..."):
+                with st.spinner("Analyzing hours, win rates, and profitability to find your best trading times..."):
                     try:
                         if analytics_df['Trade_Time'].isna().all():
                             st.warning("Aapke data mein Time format missing hai, time analysis run nahi ho sakta.")
                         else:
-                            # 1. Pre-calculate Hourly Data to prevent AI math errors
+                            # 1. DEEP TIME MATHS (Calculating Win Rate & Trades per Hour)
                             analytics_df['Hour'] = analytics_df['Trade_Time'].dt.hour
-                            time_ai_df = analytics_df.groupby('Hour')['P&L_Clean'].sum().reset_index()
-                            time_ai_df['Time_Label'] = time_ai_df['Hour'].apply(lambda x: f"{int(x):02d}:00")
                             
-                            ai_feed = time_ai_df[['Time_Label', 'P&L_Clean']].to_string(index=False)
+                            time_stats = analytics_df.groupby('Hour').agg(
+                                Net_PnL=('P&L_Clean', 'sum'),
+                                Total_Trades=('P&L_Clean', 'count'),
+                                Wins=('P&L_Clean', lambda x: (x > 0).sum())
+                            ).reset_index()
+                            
+                            time_stats['Win_Rate_%'] = (time_stats['Wins'] / time_stats['Total_Trades'] * 100).round(1)
+                            time_stats['Time_Label'] = time_stats['Hour'].apply(lambda x: f"{int(x):02d}:00")
+                            
+                            ai_feed = time_stats[['Time_Label', 'Net_PnL', 'Win_Rate_%', 'Total_Trades']].to_string(index=False)
                             
                             prompt = f"""
-                            You are a strict Quant Trading Coach. Analyze this hourly Profit/Loss data covering all trading days.
-                            Identify the 'Best Time' (Golden Zone) and the 'Worst Time' (Danger Zone) to trade.
+                            Act as an Expert Quant Trading Analyst. This is a deeply detailed Time Horizon Study of a trader.
+                            You have their Hourly Net Profit, Win Rate %, and Total Trades.
+                            
+                            Find the absolute Best Time (Golden Zone) and absolute Worst Time (Danger Zone) based on a COMBINATION of Profitability and Win Rate.
+                            (e.g., A time with huge profit but 20% win rate is lucky, not a Golden Zone. Look for consistency).
                             
                             CRITICAL: RESPOND ONLY WITH RAW JSON. NO MARKDOWN. ALL TEXT IN HINGLISH.
                             Format:
@@ -134,25 +166,25 @@ if uploaded_files:
                                 "insights": [
                                     {{
                                         "Zone_Type": "Danger",
-                                        "Zone_Name": "🔴 Danger Zone (Worst Time)", 
+                                        "Zone_Name": "🔴 Danger Zone (Avoid Trading)", 
                                         "Timeframe": "e.g. 14:00 to 16:00", 
-                                        "Avoid": "Kya exactly avoid karna hai is time par...", 
-                                        "Improve": "Is time pe system band karna chahiye ya size kam karna chahiye...",
-                                        "Benefit": "Bade losses se bachaav"
+                                        "Avoid": "Exactly why this time is bad (mention low win rate or big losses)...", 
+                                        "Improve": "What to do instead during this time...",
+                                        "Benefit": "Capital protection"
                                     }},
                                     {{
                                         "Zone_Type": "Golden",
-                                        "Zone_Name": "🟢 Golden Zone (Best Time)", 
+                                        "Zone_Name": "🟢 Golden Zone (Focus Here)", 
                                         "Timeframe": "e.g. 09:00 to 11:00", 
-                                        "Avoid": "Jaldi fear mein exit nahi karna hai...", 
-                                        "Improve": "High probability setups par pura focus rakhna...",
-                                        "Benefit": "Max profit capture hoga"
+                                        "Avoid": "Dont miss setups here...", 
+                                        "Improve": "Deploy maximum capital or best setups here because of high win rate...",
+                                        "Benefit": "Maximum edge utilization"
                                     }}
                                 ],
-                                "summary": "One clear line on when they should strictly trade and when to avoid."
+                                "summary": "One clear line on the ultimate time to trade for maximum benefit."
                             }}
                             
-                            Hourly P&L Data:
+                            Deep Time Data:
                             {ai_feed}
                             """
                             response = model.generate_content(prompt)
@@ -162,22 +194,40 @@ if uploaded_files:
                             ai_data = json.loads(raw_json)
                             
                             # 1. AI Summary
-                            st.info(f"💡 **AI Timing Insight:** {ai_data['summary']}")
+                            st.success(f"🎯 **Time Horizon Edge:** {ai_data['summary']}")
                             
-                            # 2. Beautiful Line Chart (Time vs Profit)
-                            fig_line = px.line(time_ai_df, x='Time_Label', y='P&L_Clean', markers=True, 
-                                               title="📈 Hourly Profit & Loss Trend (All Days)")
-                            fig_line.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.8)
+                            # 2. Dual-Axis Line Chart (P&L and Win Rate combined)
+                            fig_combo = go.Figure()
                             
-                            # Color markers based on profit/loss
-                            marker_colors = ['#00CC96' if val >= 0 else '#EF553B' for val in time_ai_df['P&L_Clean']]
-                            fig_line.update_traces(line_color="#1976d2", line_width=3, 
-                                                   marker=dict(size=12, color=marker_colors, line=dict(width=2, color='white')))
+                            # Add P&L Line
+                            marker_colors = ['#00CC96' if val >= 0 else '#EF553B' for val in time_stats['Net_PnL']]
+                            fig_combo.add_trace(go.Scatter(
+                                x=time_stats['Time_Label'], y=time_stats['Net_PnL'],
+                                mode='lines+markers', name='Net P&L',
+                                line=dict(color='#1976d2', width=3),
+                                marker=dict(size=12, color=marker_colors, line=dict(width=2, color='white')),
+                                yaxis='y1'
+                            ))
                             
-                            st.plotly_chart(fig_line, use_container_width=True)
+                            # Add Win Rate Bar (Background)
+                            fig_combo.add_trace(go.Bar(
+                                x=time_stats['Time_Label'], y=time_stats['Win_Rate_%'],
+                                name='Win Rate %', opacity=0.3, marker_color='#9c27b0',
+                                yaxis='y2'
+                            ))
+                            
+                            fig_combo.update_layout(
+                                title="📈 Deep Time Study: Profitability vs Win Rate",
+                                yaxis=dict(title="Net P&L (₹)"),
+                                yaxis2=dict(title="Win Rate (%)", overlaying='y', side='right', range=[0, 100]),
+                                showlegend=True, hovermode='x unified'
+                            )
+                            fig_combo.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.8)
+                            
+                            st.plotly_chart(fig_combo, use_container_width=True)
 
                             # 3. Action Cards (Danger vs Golden Zone)
-                            st.markdown("### ⏳ Time-Based Action Plan")
+                            st.markdown("### ⏳ Ultimate Time-Based Strategy")
                             cols = st.columns(len(ai_data['insights']))
                             
                             for i, item in enumerate(ai_data['insights']):
@@ -205,7 +255,7 @@ if uploaded_files:
                                                 <span style="color: #d32f2f; font-weight: bold;">❌ Avoid:</span> {item['Avoid']}
                                             </p>
                                             <p style="color: #555555; font-size: 14px; margin: 8px 0; line-height: 1.4;">
-                                                <span style="color: #1976d2; font-weight: bold;">🛠️ Improve:</span> {item['Improve']}
+                                                <span style="color: #1976d2; font-weight: bold;">🛠️ Focus:</span> {item['Improve']}
                                             </p>
                                         </div>
                                         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #dcdcdc;">
