@@ -9,7 +9,7 @@ import os
 # --- Page Setup (MUST be first) ---
 st.set_page_config(page_title="Challengevala Trader Journal", page_icon="📈", layout="wide")
 
-# --- MASTER STRICT CSS (Removing All Borders & Implementing Gemini Depth) ---
+# --- MASTER STRICT CSS (Removing Blue Border & Adding Premium Depth) ---
 st.markdown("""
     <style>
     /* 1. Page Background & Clean Look */
@@ -26,16 +26,15 @@ st.markdown("""
         line-height: 1.2;
     }
 
-    /* 3. PREMIUM METRICS LAYOUT (STRICTLY NO BORDER + SOFT DEPTH) */
+    /* 3. PREMIUM METRICS LAYOUT (NO BORDER + GEMINI DEPTH) */
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] { padding: 0 10px; }
     div[data-testid="stMetric"] {
         background-color: #ffffff;
-        padding: 24px !important;
-        border-radius: 24px !important;
-        border: none !important; /* Borders removed */
-        outline: none !important;
-        /* Exact depth shadow matching your attached example */
-        box-shadow: 0 10px 40px rgba(0,0,0,0.04), 0 2px 10px rgba(0,0,0,0.01) !important;
+        padding: 20px !important;
+        border-radius: 20px !important;
+        border: none !important; /* Blue border removed */
+        /* High-end soft depth shadow matching your example */
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06), 0 2px 10px rgba(0,0,0,0.02) !important;
         width: 100% !important;
         display: flex;
         flex-direction: column;
@@ -45,35 +44,34 @@ st.markdown("""
     div[data-testid="stMetric"] label { color: #555; font-weight: bold; font-size: 14px; margin-bottom: 5px; }
     div[data-testid="stMetricValue"] > div { color: #1976d2; font-size: 28px !important; font-weight: 700 !important; }
 
-    /* 4. CHARTS (STRICTLY NO BORDER + SOFT DEPTH) */
+    /* 4. CHARTS (NO BORDER + PREMIUM DEPTH) */
     div[data-testid="stPlotlyChart"] {
         background-color: #ffffff;
-        padding: 24px;
-        border-radius: 24px;
-        border: none !important; /* Borders removed */
-        box-shadow: 0 10px 40px rgba(0,0,0,0.04), 0 2px 10px rgba(0,0,0,0.01) !important;
+        padding: 20px;
+        border-radius: 20px;
+        border: none !important; /* Border removed */
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06), 0 2px 10px rgba(0,0,0,0.02) !important;
         margin-bottom: 20px;
         overflow: hidden !important; 
     }
     iframe { overflow: hidden !important; border: none !important; }
 
-    /* 5. Minimalist File Uploader (No border) */
+    /* 5. Minimalist File Uploader (Cleaned Up) */
     div[data-testid="stFileUploader"] {
         background-color: white;
-        border-radius: 20px;
+        border-radius: 15px;
         padding: 10px;
-        border: none !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        border: 1px solid #eee; /* Light neutral border instead of blue */
         margin-bottom: 20px;
     }
 
-    /* 6. TIMELINE & AI BOXES (STRICTLY NO BORDER + SOFT DEPTH) */
+    /* 6. TIMELINE & AI BOXES (NO BORDER + PREMIUM DEPTH) */
     .timeline-box {
         background-color: #ffffff;
         padding: 25px;
-        border-radius: 24px;
-        border: none !important; /* Borders removed */
-        box-shadow: 0 10px 40px rgba(0,0,0,0.04), 0 2px 10px rgba(0,0,0,0.01);
+        border-radius: 20px;
+        border: none !important; /* Border removed */
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06), 0 2px 10px rgba(0,0,0,0.02);
         margin-bottom: 20px;
         width: 100%;
         overflow: hidden;
@@ -83,15 +81,15 @@ st.markdown("""
     /* Progress Bar Styling */
     .trade-row { display: flex; align-items: center; margin-bottom: 12px; min-height: 40px; width: 100%; }
     .trade-time { width: 10%; min-width: 70px; font-weight: bold; font-size: 15px; color: #444; }
-    .trade-progress-wrapper { width: 70%; background-color: #f0f2f6; border-radius: 12px; height: 28px; position: relative; overflow: hidden; margin: 0 15px; }
-    .trade-progress-bar { height: 100%; border-radius: 12px; display: flex; align-items: center; padding-left: 10px; }
+    .trade-progress-wrapper { width: 70%; background-color: #f0f2f6; border-radius: 8px; height: 28px; position: relative; overflow: hidden; margin: 0 15px; }
+    .trade-progress-bar { height: 100%; border-radius: 8px; display: flex; align-items: center; padding-left: 10px; }
     .trade-win-text { font-size: 13px; font-weight: bold; white-space: nowrap; }
     .trade-pnl { width: 20%; min-width: 130px; text-align: right; font-weight: bold; font-size: 17px; }
     
     /* 7. Plotly hide modebar */
     .modebar { display: none !important; }
     
-    /* Brand Buttons */
+    /* Highlighting buttons with Brand Color */
     .stButton>button {
         background-color: #1976d2 !important;
         color: white !important;
@@ -184,13 +182,14 @@ if uploaded_files:
         m4.metric("Win Trades", wins)
         m5.metric("Loss Trades", losses)
 
-        # --- Visual Data Insights ---
+        # --- Visual Data Insights (Scrollbar Fixed) ---
         st.markdown("---")
         st.markdown("<h4 style='color: #1976d2; margin-bottom: 15px;'>👁️ Visual Data Insights</h4>", unsafe_allow_html=True)
         
         daily = analytics_df.groupby('Date_Clean')['P&L_Clean'].sum().reset_index()
         daily['Equity Curve'] = daily['P&L_Clean'].cumsum()
         
+        # Plotly chart with smaller margins to ensure it fits without scrolling
         fig_eq = px.area(daily, x='Date_Clean', y='Equity Curve', title="Total Portfolio Growth",
                          labels={'Date_Clean': 'Trading Date', 'Equity Curve': 'Total Equity (₹)'})
         fig_eq.update_traces(line_color="#1976d2", fillcolor="rgba(25, 118, 210, 0.1)")
