@@ -14,12 +14,15 @@ st.markdown("""
     <style>
     .stApp { background-color: #fcfcfc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
+    /* Fix Top Padding */
+    .block-container { padding-top: 2rem !important; }
+
     /* Heading Black */
     .major-title {
         text-align: left; 
         color: #000000;
-        margin-top: 15px; 
-        margin-bottom: 5px; 
+        margin-top: 10px; 
+        margin-bottom: 20px; 
         font-size: 38px; 
         font-weight: 800;
         line-height: 1.2;
@@ -33,8 +36,8 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
         font-weight: 800;
         font-size: 38px; 
-        margin-top: 15px; 
-        margin-bottom: 5px;
+        margin-top: 30px; 
+        margin-bottom: 15px;
     }
 
     /* BLUE GRADIENT for Matrix Heading */
@@ -44,7 +47,8 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
         font-size: 24px;
         font-weight: 800;
-        margin-bottom: 15px;
+        margin-top: 20px;
+        margin-bottom: 10px;
         display: inline-block;
     }
 
@@ -56,16 +60,16 @@ st.markdown("""
         padding: 40px 20px !important;
         margin-bottom: 30px !important;
         display: flex;
-        justify-content: space-around; /* Distributes items equally */
+        justify-content: space-around; 
         align-items: center;
         text-align: center;
         width: 100%;
     }
 
-    /* Individual Data Item (Proper Columnar Layout) */
+    /* Individual Data Item */
     .metric-item {
         display: flex;
-        flex-direction: column; /* Vertical alignment (Label above Value) */
+        flex-direction: column; 
         align-items: center;
         flex: 1;
     }
@@ -74,7 +78,7 @@ st.markdown("""
         color: #555; 
         font-weight: bold; 
         font-size: 14px; 
-        margin-bottom: 10px; /* Space between label and value */
+        margin-bottom: 10px; 
     }
 
     .metric-value { 
@@ -92,10 +96,14 @@ st.markdown("""
         border-radius: 24px !important;
         box-shadow: 0 10px 40px rgba(0,0,0,0.04), 0 2px 10px rgba(0,0,0,0.01) !important;
         padding: 20px !important;
-        margin-bottom: 20px !important;
+        margin-bottom: 30px !important;
     }
 
+    /* File Uploader Spacing */
+    div[data-testid="stFileUploader"] { margin-bottom: 25px; }
+
     .modebar { display: none !important; }
+    hr { margin: 2em 0 !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -104,7 +112,7 @@ logo_path = "logo-full.png"
 if os.path.exists(logo_path):
     with open(logo_path, "rb") as f:
         data = base64.b64encode(f.read()).decode()
-        st.markdown(f'<img src="data:image/png;base64,{data}" style="max-width: 250px; margin-bottom: 10px;">', unsafe_allow_html=True)
+        st.markdown(f'<img src="data:image/png;base64,{data}" style="max-width: 250px;">', unsafe_allow_html=True)
 
 st.markdown('<h1 class="major-title">📈 Elite Quant Dashboard & Auto-Evolving AI</h1>', unsafe_allow_html=True)
 st.markdown("---")
@@ -137,7 +145,6 @@ if uploaded_files:
         # --- THE MATRIX HEADING ---
         st.markdown('<div class="matrix-title-blue">📊 Combined Performance Matrix</div>', unsafe_allow_html=True)
         
-        # Proper Vertical Alignment using metric-item structure
         st.markdown(f"""
             <div class="matrix-box">
                 <div class="metric-item">
@@ -164,7 +171,6 @@ if uploaded_files:
         """, unsafe_allow_html=True)
 
         # --- Visual Data Insights ---
-        st.markdown("---")
         st.markdown('<div class="highlight-green">👁️ Visual Data Insights</div>', unsafe_allow_html=True)
         
         daily = final_df.groupby('Date')['P&L'].sum().reset_index()
