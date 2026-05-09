@@ -137,9 +137,8 @@ if uploaded_files:
                         """
                         response = model.generate_content(prompt)
                         
-                        # JSON parsing fixed completely on one line
-                        raw_json = response.text.replace("```json", "").replace("
-```", "").strip()
+                        # 100% Bulletproof JSON cleanup (No literal backticks used in string)
+                        raw_json = response.text.replace("`"*3 + "json", "").replace("`"*3, "").strip()
                         ai_data = json.loads(raw_json)
                         
                         # 1. Short AI Summary
