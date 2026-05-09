@@ -7,17 +7,17 @@ import json
 # --- Page Setup ---
 st.set_page_config(page_title="Challengevala Trader Dashboard", page_icon="📈", layout="wide")
 
-# Custom CSS for uniform alignment and BRAND THEME
+# Custom CSS for uniform alignment and BRAND THEME (Updated for heavily rounded boxes)
 st.markdown("""
     <style>
-    /* Metric boxes styling matching Brand Blue */
+    /* Metric boxes styling matching Brand Blue but with HEAVILY ROUNDED corners and SOFT DEPTH like Gemini example */
     .stMetric {
         background-color: #ffffff; 
-        padding: 20px; 
-        border-radius: 12px; 
+        padding: 25px; /* Slightly more padding for the new shape */
+        border-radius: 25px; /* Heavily rounded corners like example */
         border: 1px solid #e0e0e0;
         border-top: 5px solid #1976d2; /* Navy Blue Brand Color */
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08); /* Softer, deeper shadow for premium depth feel */
     }
     .stExpander {border: 1px solid #e6e9ef; border-radius: 10px;}
     
@@ -110,14 +110,18 @@ if uploaded_files:
         total_pnl = analytics_df['P&L_Clean'].sum()
         wins = len(analytics_df[analytics_df['P&L_Clean'] > 0])
         losses = len(analytics_df[analytics_df['P&L_Clean'] < 0])
-        win_rate = (wins / (wins + losses) * 100) if (wins + losses) > 0 else 0
+        
+        # New trade logic
+        total_trades = wins + losses 
+        win_rate = (wins / total_trades * 100) if total_trades > 0 else 0
 
         st.markdown("<h3 style='color: #1976d2; margin-bottom: 15px;'>📊 Combined Performance Matrix</h3>", unsafe_allow_html=True)
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4, c5 = st.columns(5) # CHANGED TO 5 COLUMNS
         c1.metric("Total Net P&L", f"₹{total_pnl:,.2f}")
         c2.metric("Win Rate", f"{win_rate:.1f}%")
-        c3.metric("Loss Trades", losses)
+        c3.metric("Total Trades", total_trades) # NEW METRIC BOX
         c4.metric("Win Trades", wins)
+        c5.metric("Loss Trades", losses)
 
         # ---------------------------------------------
         # GRAPHICS ENGINE (WITH FIXED LABELS & COLORS)
