@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 import google.generativeai as genai
 import json
+import base64
+import os
 
 # --- Page Setup (MUST be first) ---
 st.set_page_config(page_title="Challengevala Trader Journal", page_icon="📈", layout="wide")
@@ -17,10 +19,11 @@ st.markdown("""
     .header-container {
         display: flex;
         align-items: center;
-        margin-bottom: 20px;
+        margin-bottom: 25px;
+        margin-top: 10px;
     }
     .logo-container {
-        width: 150px; /* Rigid Logo width */
+        width: 250px; /* Strict Logo Width */
         margin-right: 30px;
     }
     .heading-container {
@@ -30,7 +33,7 @@ st.markdown("""
         text-align: left; 
         color: #262730; 
         margin: 0px; 
-        font-size: 36px; /* Increased Heading Size */
+        font-size: 38px; /* Increased Heading Size */
         font-weight: 800;
         line-height: 1.2;
     }
@@ -39,16 +42,16 @@ st.markdown("""
     .journal-box {
         background-color: #ffffff;
         padding: 25px;
-        border-radius: 20px; /* Clean rounded corners */
+        border-radius: 20px; 
         border: 1px solid #eeeeee; 
-        box-shadow: 0 2px 12px rgba(0,0,0,0.03); /* Super soft shadow */
+        box-shadow: 0 2px 12px rgba(0,0,0,0.03); 
         margin-bottom: 20px;
         width: 100%;
     }
 
     /* 4. Strictly Uniform Metrics Layout */
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        padding: 0 10px; /* Strict column padding */
+        padding: 0 10px;
     }
     div[data-testid="stMetric"] {
         background-color: #ffffff;
@@ -93,14 +96,14 @@ st.markdown("""
         width: 100%;
     }
     .trade-time {
-        width: 10%; /* Strict Column Widths */
+        width: 10%; 
         min-width: 70px;
         font-weight: bold; 
         font-size: 16px; 
         color: #444;
     }
     .trade-progress-wrapper {
-        width: 70%; /* Strict Column Widths */
+        width: 70%; 
         background-color: #f0f2f6; 
         border-radius: 8px; 
         height: 30px; 
@@ -117,7 +120,7 @@ st.markdown("""
     }
     .trade-win-text {font-size: 14px; font-weight: bold; white-space: nowrap;}
     .trade-pnl {
-        width: 20%; /* Strict Column Widths */
+        width: 20%; 
         min-width: 130px;
         text-align: right; 
         font-weight: bold; 
@@ -129,37 +132,27 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- BRANDING HEADER (Strictly Left Aligned & Large Heading) ---
+# --- BRANDING HEADER (BUG FIXED & SAFELY ALIGNED) ---
+logo_path = "logo-full.png"
+if os.path.exists(logo_path):
+    with open(logo_path, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode()
+        # Safe string injection, no replace bug
+        img_tag = f'<img src="data:image/png;base64,{encoded_string}" style="width: 100%;">'
+else:
+    img_tag = '<h1 style="color:#1976d2; margin:0;">👑 CT</h1>'
+
 header_html = f"""
 <div class="header-container">
     <div class="logo-container">
-        <img src="data:image/png;base64,{st.secrets.get('LOGO_BASE64', '')}" style="width: 100%;">
+        {img_tag}
     </div>
     <div class="heading-container">
         <h1 class="major-title">📈 Elite Quant Dashboard & Auto-Evolving AI</h1>
     </div>
 </div>
 """
-# If you haven't set LOGO_BASE64 in secrets, use a simple text/image fallback
-try:
-    with open("logo-full.png", "rb") as image_file:
-        import base64
-        encoded_string = base64.b64encode(image_file.read()).decode()
-        header_html = header_html.replace(st.secrets.get('LOGO_BASE64', ''), encoded_string)
-        st.markdown(header_html, unsafe_allow_html=True)
-except FileNotFoundError:
-    # Text fallback if image missing
-    st.markdown(f"""
-    <div class="header-container">
-        <div class="logo-container">
-            <h1 style="color:#1976d2; margin:0;">👑 CT</h1>
-        </div>
-        <div class="heading-container">
-            <h1 class="major-title">📈 Elite Quant Dashboard & Auto-Evolving AI</h1>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
+st.markdown(header_html, unsafe_allow_html=True)
 st.markdown("---")
 
 # --- API Setup ---
