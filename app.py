@@ -14,8 +14,19 @@ st.markdown("""
     <style>
     .stApp { background-color: #fcfcfc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-    /* GREEN GRADIENT for Main Heading & Highlights */
-    .major-title, .highlight-green {
+    /* BLACK Heading for Elite Quant Dashboard */
+    .major-title {
+        text-align: left; 
+        color: #000000; /* Strictly Black */
+        margin-top: 15px; 
+        margin-bottom: 5px; 
+        font-size: 38px; 
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    /* GREEN GRADIENT for other Highlights */
+    .highlight-green {
         text-align: left; 
         background: -webkit-linear-gradient(#89d957, #c9e265);
         -webkit-background-clip: text;
@@ -27,7 +38,7 @@ st.markdown("""
         line-height: 1.2;
     }
 
-    /* BLUE GRADIENT ONLY for Combined Performance Matrix Heading */
+    /* BLUE GRADIENT for Combined Performance Matrix Heading */
     .matrix-title-blue {
         background: -webkit-linear-gradient(#000000, #1e4ae6);
         -webkit-background-clip: text;
@@ -140,7 +151,7 @@ if uploaded_files:
             </div>
         """, unsafe_allow_html=True)
 
-        # --- Visual Data Insights (Wapas Green Highlighted) ---
+        # --- Visual Data Insights (Green Highlights) ---
         st.markdown("---")
         st.markdown('<div class="highlight-green">👁️ Visual Data Insights</div>', unsafe_allow_html=True)
         
