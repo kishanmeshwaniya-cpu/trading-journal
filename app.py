@@ -28,11 +28,12 @@ st.markdown("""
     }
     
     .logo-img {
-        max-width: 250px;
-        height: auto;
-        display: block;
-        margin: 0;
-        object-fit: contain; /* Ensures no cut-off */
+        width: 120px !important; /* Size fixed to small */
+        height: auto !important;
+        display: block !important;
+        margin: 0 !important;
+        object-fit: contain !important;
+        padding-top: 10px !important; /* Spacing from top to avoid cutting */
     }
 
     /* Heading Branding matching Brand Green */
