@@ -3,164 +3,163 @@ import pandas as pd
 import plotly.express as px
 import google.generativeai as genai
 import json
-import base64
-import os
 
-# --- Page Setup (MUST be first) ---
-st.set_page_config(page_title="Challengevala Trader Journal", page_icon="📈", layout="wide")
+# --- Page Setup ---
+st.set_page_config(page_title="Elite Quant Dashboard", page_icon="📈", layout="wide")
 
-# --- MASTER STRICT CSS (Logo Container Settle Kiya Hai) ---
 st.markdown("""
     <style>
-    /* 1. Background & Global Font */
-    .stApp { background-color: #fcfcfc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-
-    /* 2. LOGO CONTAINER FIX (Proper Padding & No Cut) */
-    .block-container { padding-top: 1.5rem !important; }
-    
-    .logo-img-container {
-        display: flex;
-        justify-content: flex-start;
-        align-items: flex-start;
-        width: 100%;
-        margin-bottom: 0px;
-        padding-left: 0px;
-    }
-    
-    .logo-img {
-        width: 120px !important; /* Size fixed to small */
-        height: auto !important;
-        display: block !important;
-        margin: 0 !important;
-        object-fit: contain !important;
-        padding-top: 10px !important; /* Spacing from top to avoid cutting */
-    }
-
-    /* Heading Branding matching Brand Green */
-    .major-title {
-        text-align: left; 
-        background: -webkit-linear-gradient(#89d957, #c9e265);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-top: 5px; 
-        margin-bottom: 5px; 
-        font-size: 38px; 
-        font-weight: 800;
-        line-height: 1.2;
-    }
-
-    /* 3. Metrics Layout */
-    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] { padding: 0 10px; }
-    div[data-testid="stMetric"] {
-        background-color: #ffffff;
-        padding: 20px !important;
-        border-radius: 20px !important;
-        border: 1px solid #eeeeee !important;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05), 0 4px 10px rgba(0,0,0,0.02) !important;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-height: 120px;
-    }
-    div[data-testid="stMetric"] label { color: #555; font-weight: bold; font-size: 14px; margin-bottom: 5px; }
-    div[data-testid="stMetricValue"] > div { 
-        background: -webkit-linear-gradient(#89d957, #c9e265);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 28px !important; 
-        font-weight: 700 !important; 
-    }
-
-    /* 4. Fixing Vertical Scrollbars on Charts */
-    div[data-testid="stPlotlyChart"] {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 20px;
-        border: 1px solid #eeeeee;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05) !important;
-        margin-bottom: 20px;
-        overflow: hidden !important; 
-    }
-    iframe { overflow: hidden !important; border: none !important; }
-
-    /* 5. Timelines */
-    .timeline-box {
-        background-color: #ffffff;
-        padding: 25px;
-        border-radius: 20px;
-        border: 1px solid #eeeeee;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
-        width: 100%;
-        overflow: hidden;
-    }
-    .modebar { display: none !important; }
-    hr { margin: 1em 0 !important; }
+    .stMetric {background-color: #f0f2f6; padding: 15px; border-radius: 10px;}
+    .stExpander {border: 1px solid #e6e9ef; border-radius: 10px;}
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER (LOGO + HEADING BELOW) ---
-logo_path = "logo-full.png"
-if os.path.exists(logo_path):
-    with open(logo_path, "rb") as image_file:
-        encoded_string = base64.b64encode(image_file.read()).decode()
-        # Strictly using HTML for Logo placement to avoid Streamlit's container cutoff
-        st.markdown(f'''
-            <div class="logo-img-container">
-                <img src="data:image/png;base64,{encoded_string}" class="logo-img">
-            </div>
-        ''', unsafe_allow_html=True)
-
-st.markdown('<h1 class="major-title">📈 Elite Quant Dashboard & Auto-Evolving AI</h1>', unsafe_allow_html=True)
-st.markdown("---")
+st.title("📈 Elite Quant Dashboard & Auto-Evolving AI")
 
 # --- API Setup ---
 model = None
-if "GEMINI_API_KEY" in st.secrets:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    model = genai.GenerativeModel("gemini-1.5-flash")
+try:
+    if "GEMINI_API_KEY" in st.secrets:
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        model_name = next((m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods), "gemini-1.5-flash")
+        model = genai.GenerativeModel(model_name)
+    else:
+        st.sidebar.warning("⚠️ API Key Missing! Settings > Secrets mein daalein.")
+except Exception as e:
+    pass
 
-uploaded_files = st.file_uploader("📥 Upload CSVs", accept_multiple_files=True, type=['csv'])
+# --- File Uploader ---
+uploaded_files = st.file_uploader("📥 Upload Dhan & Delta CSVs together", accept_multiple_files=True, type=['csv'])
 
 if uploaded_files:
-    all_data = []
+    all_processed_data = []
+    
+    # --- DUAL ENGINE ---
     for f in uploaded_files:
-        df = pd.read_csv(f)
-        if 'Realised P&L' in df.columns: # Delta
-            df['P&L'] = pd.to_numeric(df['Realised P&L'], errors='coerce').fillna(0) * 85
-            df['Date'] = pd.to_datetime(df['Time'].str[:10]).dt.date
-            all_data.append(df[['Date', 'P&L']])
-        elif 'Date' in df.columns: # Dhan
-            df = df[df['Buy/Sell'].isin(['BUY', 'SELL'])].copy()
-            df['P&L'] = df.apply(lambda r: r['Trade Value'] if r['Buy/Sell'] == 'SELL' else -r['Trade Value'], axis=1)
-            df['Date'] = pd.to_datetime(df['Date']).dt.date
-            all_data.append(df[['Date', 'P&L']])
-
-    if all_data:
-        final_df = pd.concat(all_data)
+        temp_df = pd.read_csv(f)
         
-        total_pnl = final_df['P&L'].sum()
-        wins = len(final_df[final_df['P&L'] > 0])
-        losses = len(final_df[final_df['P&L'] < 0])
-        total_trades = wins + losses 
-        win_rate = (wins / total_trades * 100) if total_trades > 0 else 0
+        # DELTA
+        if 'Time' in temp_df.columns and 'Realised P&L' in temp_df.columns:
+            temp_df['P&L_Clean'] = pd.to_numeric(temp_df['Realised P&L'], errors='coerce').fillna(0) * 85
+            temp_df = temp_df[temp_df['P&L_Clean'] != 0].copy()
+            temp_df['Date_Clean'] = pd.to_datetime(temp_df['Time'].astype(str).str[:10], errors='coerce').dt.date
+            temp_df['Trade_Time'] = pd.to_datetime(temp_df['Time'].astype(str).str[:19], errors='coerce')
+            temp_df['Asset'] = temp_df['Contract']
+            all_processed_data.append(temp_df[['Date_Clean', 'Trade_Time', 'Asset', 'P&L_Clean']])
+            
+        # DHAN
+        elif 'Date' in temp_df.columns and 'Trade Value' in temp_df.columns:
+            temp_df = temp_df[temp_df['Buy/Sell'].astype(str).str.upper().isin(['BUY', 'SELL'])].copy()
+            temp_df['Cashflow'] = temp_df.apply(lambda r: r['Trade Value'] if str(r['Buy/Sell']).upper() == 'SELL' else -r['Trade Value'], axis=1)
+            dhan_grouped = temp_df.groupby([pd.to_datetime(temp_df['Date']).dt.date, 'Name']).agg({'Cashflow': 'sum', 'Time': 'max'}).reset_index()
+            dhan_grouped.columns = ['Date_Clean', 'Asset', 'P&L_Clean', 'Time']
+            dhan_grouped = dhan_grouped[dhan_grouped['P&L_Clean'] != 0].copy()
+            dhan_grouped['Trade_Time'] = pd.to_datetime(dhan_grouped['Time'], format='mixed', errors='coerce')
+            all_processed_data.append(dhan_grouped[['Date_Clean', 'Trade_Time', 'Asset', 'P&L_Clean']])
 
-        st.markdown("<h4 style='color: #1976d2;'>📊 Performance Matrix</h4>", unsafe_allow_html=True)
-        m1, m2, m3, m4, m5 = st.columns(5)
-        m1.metric("Total Net P&L", f"₹{total_pnl:,.2f}")
-        m2.metric("Win Rate", f"{win_rate:.1f}%")
-        m3.metric("Total Trades", total_trades)
-        m4.metric("Wins", wins)
-        m5.metric("Losses", losses)
+    # Master Data
+    if all_processed_data:
+        analytics_df = pd.concat(all_processed_data, ignore_index=True)
+        analytics_df['Asset_Display'] = analytics_df['Asset'].astype(str).apply(lambda x: x[:15] + ".." if len(x) > 15 else x)
+        
+        total_pnl = analytics_df['P&L_Clean'].sum()
+        wins = len(analytics_df[analytics_df['P&L_Clean'] > 0])
+        losses = len(analytics_df[analytics_df['P&L_Clean'] < 0])
+        win_rate = (wins / (wins + losses) * 100) if (wins + losses) > 0 else 0
 
-        # --- Visuals ---
+        st.subheader("📊 Combined Performance Matrix (Dhan + Delta)")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Total Net P&L", f"₹{total_pnl:,.2f}")
+        c2.metric("Win Rate", f"{win_rate:.1f}%")
+        c3.metric("Loss Trades", losses)
+        c4.metric("Win Trades", wins)
+
+        # ---------------------------------------------
+        # GRAPHICS ENGINE 
+        # ---------------------------------------------
         st.markdown("---")
-        st.markdown("<h4 style='color: #1976d2;'>👁️ Total Portfolio Growth</h4>", unsafe_allow_html=True)
+        st.subheader("👁️ Visual Data Insights")
         
-        daily = final_df.groupby('Date')['P&L'].sum().reset_index()
-        daily['Equity'] = daily['P&L'].cumsum()
+        daily = analytics_df.groupby('Date_Clean')['P&L_Clean'].sum().reset_index()
+        daily['Equity Curve'] = daily['P&L_Clean'].cumsum()
+        fig_eq = px.area(daily, x='Date_Clean', y='Equity Curve', title="📈 Total Portfolio Growth")
+        fig_eq.update_layout(hovermode=False) 
+        st.plotly_chart(fig_eq, use_container_width=True)
         
-        fig_eq = px.area(daily, x='Date', y='Equity')
-        fig_eq.update_traces(line_color="#89d957", fillcolor="rgba(137, 217, 87, 0.1)")
-        fig_eq.update_layout(margin=dict(l=10, r=10, t=10, b=10), hovermode=False, plot_bgcolor="white") 
-        st.plotly_chart(fig_eq, use_container_width=True, config={'displayModeBar': False})
+        col_g1, col_g2 = st.columns(2)
+        
+        with col_g1:
+            asset_pnl = analytics_df.groupby('Asset_Display')['P&L_Clean'].sum().reset_index()
+            fig_asset = px.bar(asset_pnl, x='Asset_Display', y='P&L_Clean', title="🎯 P&L by Instrument", color=asset_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
+            fig_asset.update_layout(showlegend=False, hovermode=False, xaxis_tickangle=-45)
+            st.plotly_chart(fig_asset, use_container_width=True)
+            
+        with col_g2:
+            if not analytics_df['Trade_Time'].isna().all():
+                analytics_df['Hour'] = analytics_df['Trade_Time'].dt.hour
+                time_pnl = analytics_df.groupby('Hour')['P&L_Clean'].sum().reset_index()
+                time_pnl['Hour_Label'] = time_pnl['Hour'].apply(lambda x: f"{int(x):02d}:00")
+                fig_time = px.bar(time_pnl, x='Hour_Label', y='P&L_Clean', title="⏰ P&L by Hour", color=time_pnl['P&L_Clean'] > 0, color_discrete_map={True: "#00CC96", False: "#EF553B"})
+                fig_time.update_layout(showlegend=False, hovermode=False)
+                st.plotly_chart(fig_time, use_container_width=True)
+
+        # ---------------------------------------------
+        # VISUAL AI ENGINE (NO ESSAYS)
+        # ---------------------------------------------
+        st.markdown("---")
+        st.subheader("🧠 Gemini Core: Visual Pattern Diagnostics")
+        if st.button("Generate Visual Diagnostic"):
+            if model is not None:
+                with st.spinner("Processing data into visual charts..."):
+                    try:
+                        ai_feed = analytics_df[['Date_Clean', 'Trade_Time', 'Asset', 'P&L_Clean']].tail(50).to_string(index=False)
+                        
+                        prompt = f"""
+                        Analyze this trading data. Identify the top 3-4 trading mistakes or patterns causing drawdowns.
+                        Assign an 'Impact Score' (1-100) to each based on how much it is hurting the portfolio.
+                        
+                        CRITICAL: YOU MUST RESPOND ONLY WITH A VALID RAW JSON OBJECT. NO MARKDOWN FORMATTING. NO BACKTICKS. NO TEXT.
+                        
+                        Format exactly like this:
+                        {{
+                            "chart_data": [
+                                {{"Mistake": "Short Hinglish Title 1", "Impact": 85}},
+                                {{"Mistake": "Short Hinglish Title 2", "Impact": 60}}
+                            ],
+                            "summary": "Ek line ka Hinglish conclusion ki kahan improve karna hai."
+                        }}
+                        
+                        Data:
+                        {ai_feed}
+                        """
+                        response = model.generate_content(prompt)
+                        
+                        # Syntax Error Fixed Logic (Safe JSON parsing)
+                        raw_json = response.text.strip()
+                        raw_json = raw_json.replace("```json", "").replace("```", "").strip()
+                        
+                        ai_data = json.loads(raw_json)
+                        
+                        # 1. The Short Text Overview
+                        st.success(f"💡 **AI Overview:** {ai_data['summary']}")
+                        
+                        # 2. The Charts (Pie and Bar)
+                        ai_df = pd.DataFrame(ai_data['chart_data'])
+                        
+                        c_pie, c_bar = st.columns(2)
+                        with c_pie:
+                            fig_pie = px.pie(ai_df, values='Impact', names='Mistake', title="🔥 Mistake Impact Breakdown (Donut)", hole=0.4, color_discrete_sequence=px.colors.sequential.Reds_r)
+                            fig_pie.update_layout(hovermode=False)
+                            st.plotly_chart(fig_pie, use_container_width=True)
+                            
+                        with c_bar:
+                            fig_bar = px.bar(ai_df, x='Mistake', y='Impact', title="📉 Severity Level (Bar)", color='Impact', color_continuous_scale='Reds')
+                            fig_bar.update_layout(hovermode=False, coloraxis_showscale=False)
+                            st.plotly_chart(fig_bar, use_container_width=True)
+                            
+                    except Exception as e:
+                        st.error(f"AI Parse Error. Try clicking again. (Error details: {e})")
+    else:
+        st.warning("⚠️ No valid trades detected.")
+else:
+    st.info("👆 Please drop your CSVs to see visual analytics.")
