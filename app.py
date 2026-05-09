@@ -14,25 +14,26 @@ st.markdown("""
     <style>
     .stApp { background-color: #fcfcfc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-    /* Fix Top Padding & Logo Container */
-    .block-container { padding-top: 1.5rem !important; }
+    /* Logo and Header Spacing Fix */
+    .block-container { padding-top: 2rem !important; }
     
     .logo-container {
         text-align: left;
-        margin-bottom: 0px;
+        margin-bottom: 10px;
+        padding: 0;
     }
     
     .logo-img {
-        max-width: 280px;
+        max-width: 250px; /* Original size restored */
         height: auto;
-        object-fit: contain; /* Ensures logo doesn't cut */
+        display: block;
     }
 
     /* Heading Black */
     .major-title {
         text-align: left; 
         color: #000000;
-        margin-top: 5px; 
+        margin-top: 10px; 
         margin-bottom: 20px; 
         font-size: 38px; 
         font-weight: 800;
@@ -113,7 +114,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER (FIXED LOGO RENDER) ---
+# --- HEADER ---
 logo_path = "logo-full.png"
 if os.path.exists(logo_path):
     with open(logo_path, "rb") as f:
@@ -152,7 +153,6 @@ if uploaded_files:
         total = w + l
         wr = (w / total * 100) if total > 0 else 0
 
-        # --- THE MATRIX HEADING ---
         st.markdown('<div class="matrix-title-blue">📊 Combined Performance Matrix</div>', unsafe_allow_html=True)
         
         st.markdown(f"""
@@ -180,7 +180,6 @@ if uploaded_files:
             </div>
         """, unsafe_allow_html=True)
 
-        # --- Visual Data Insights ---
         st.markdown('<div class="highlight-green">👁️ Visual Data Insights</div>', unsafe_allow_html=True)
         
         daily = final_df.groupby('Date')['P&L'].sum().reset_index()
