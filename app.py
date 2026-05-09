@@ -11,6 +11,8 @@ st.markdown("""
     <style>
     .stMetric {background-color: #f0f2f6; padding: 15px; border-radius: 10px;}
     .stExpander {border: 1px solid #e6e9ef; border-radius: 10px;}
+    /* Ensure markdown columns align well */
+    div[data-testid="column"] {display: flex; flex-direction: column;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -104,29 +106,33 @@ if uploaded_files:
                 st.plotly_chart(fig_time, use_container_width=True)
 
         # ---------------------------------------------
-        # VISUAL AI ENGINE (PRO GUIDANCE VERSION)
+        # VISUAL AI ENGINE (PRO UI VERSION)
         # ---------------------------------------------
         st.markdown("---")
-        st.subheader("🧠 Gemini Core: Visual Pattern Diagnostics")
+        st.subheader("🧠 Gemini Core: Advanced Pattern Diagnostics")
         if st.button("Generate Visual Diagnostic"):
             if model is not None:
-                with st.spinner("Analyzing patterns and generating guidance..."):
+                with st.spinner("Analyzing data and generating actionable insights..."):
                     try:
                         ai_feed = analytics_df[['Date_Clean', 'Trade_Time', 'Asset', 'P&L_Clean']].tail(50).to_string(index=False)
                         
                         prompt = f"""
-                        Analyze this trading data. Identify 3 critical mistakes.
-                        For each mistake, provide a short Hinglish 'Avoid' instruction and a 'Benefit'.
+                        Analyze this trading data. Identify 3 critical mistakes causing losses.
+                        For each mistake, provide:
+                        1. Avoid: What exact action to stop.
+                        2. Improve: What exact action to start doing instead.
+                        3. Benefit: The positive result of this change.
                         
-                        CRITICAL: RESPOND ONLY WITH RAW JSON. NO MARKDOWN.
+                        CRITICAL: RESPOND ONLY WITH RAW JSON. NO MARKDOWN. ALL TEXT IN HINGLISH.
                         Format:
                         {{
                             "chart_data": [
                                 {{
                                     "Mistake": "Short Title", 
                                     "Impact": 85, 
-                                    "Avoid": "Kya avoid karna hai (short)", 
-                                    "Benefit": "Fayda kya hoga (short)"
+                                    "Avoid": "Kya avoid karna hai", 
+                                    "Improve": "Kaise theek karna hai (improvement step)",
+                                    "Benefit": "Fayda kya hoga"
                                 }}
                             ],
                             "summary": "One line overall conclusion."
@@ -137,12 +143,12 @@ if uploaded_files:
                         """
                         response = model.generate_content(prompt)
                         
-                        # 100% Bulletproof JSON cleanup (No literal backticks used in string)
+                        # Safe JSON Parsing
                         raw_json = response.text.replace("`"*3 + "json", "").replace("`"*3, "").strip()
                         ai_data = json.loads(raw_json)
                         
                         # 1. Short AI Summary
-                        st.success(f"💡 **AI Overview:** {ai_data['summary']}")
+                        st.info(f"💡 **AI Overview:** {ai_data['summary']}")
                         
                         # 2. Dual Charts
                         ai_df = pd.DataFrame(ai_data['chart_data'])
@@ -152,19 +158,36 @@ if uploaded_files:
                             st.plotly_chart(fig_pie, use_container_width=True)
                         with c_bar:
                             fig_bar = px.bar(ai_df, x='Mistake', y='Impact', title="📉 Severity Level", color='Impact', color_continuous_scale='Reds')
+                            fig_bar.update_layout(coloraxis_showscale=False)
                             st.plotly_chart(fig_bar, use_container_width=True)
 
-                        # 3. Actionable Guidance Cards (To-the-point)
-                        st.markdown("### 🛡️ Actionable Guidance (Avoid & Win)")
+                        # 3. Actionable Guidance Cards (Beautiful Modern UI)
+                        st.markdown("### 🛡️ Action Plan (Avoid -> Improve -> Win)")
                         cols = st.columns(len(ai_data['chart_data']))
                         
                         for i, item in enumerate(ai_data['chart_data']):
                             with cols[i]:
                                 st.markdown(f'''
-                                <div style="background-color:#ffebee; padding:15px; border-radius:10px; border-left: 5px solid #d32f2f; min-height: 150px;">
-                                    <h4 style="color:#d32f2f; margin:0 0 10px 0; font-size:16px;">{item['Mistake']}</h4>
-                                    <p style="color:#333; font-size:14px; margin:5px 0;"><b>❌ Avoid:</b> {item['Avoid']}</p>
-                                    <p style="color:#333; font-size:14px; margin:5px 0;"><b>✅ Benefit:</b> {item['Benefit']}</p>
+                                <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; 
+                                            border: 1px solid #e0e0e0; border-top: 5px solid #d32f2f; 
+                                            box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 280px; 
+                                            display: flex; flex-direction: column;">
+                                    <h4 style="color: #333333; margin-top: 0; margin-bottom: 15px; font-size: 16px;">
+                                        🚨 {item['Mistake']}
+                                    </h4>
+                                    <div style="flex-grow: 1;">
+                                        <p style="color: #555555; font-size: 14px; margin: 8px 0; line-height: 1.4;">
+                                            <span style="color: #d32f2f; font-weight: bold;">❌ Avoid:</span> {item['Avoid']}
+                                        </p>
+                                        <p style="color: #555555; font-size: 14px; margin: 8px 0; line-height: 1.4;">
+                                            <span style="color: #1976d2; font-weight: bold;">🛠️ Improve:</span> {item['Improve']}
+                                        </p>
+                                    </div>
+                                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eeeeee;">
+                                        <p style="color: #2e7d32; font-size: 14px; margin: 0; font-weight: 500;">
+                                            ✅ Benefit: {item['Benefit']}
+                                        </p>
+                                    </div>
                                 </div>
                                 ''', unsafe_allow_html=True)
                                 
